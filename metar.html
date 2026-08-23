@@ -12,6 +12,9 @@
         .metar-row { display: flex; flex-direction: row; align-items: center; width: 100%; line-height: 1.1; }
         .secondary-row { margin-left: 5px; }
         
+        /* Top Row Flex Adjustments */
+        .top-row-wrapper { display: flex; flex-direction: row; align-items: center; width: 100%; }
+        
         .raw-row { font-family: monospace; font-size: 27px; background-color: #0f172a; color: #f8fafc; padding: 4px 12px; width: 100%; box-sizing: border-box; border-radius: 4px; display: flex; align-items: center; }
         .raw-row .scroll-wrapper { display: flex; align-items: baseline; }
         .station-block { display: flex; align-items: baseline; margin-right: 20px; }
@@ -26,7 +29,6 @@
         .heartbeat-led { display: inline-block; width: 15px; height: 15px; border-radius: 50%; background-color: #22c55e; margin-left: 12px; align-self: center; box-shadow: 0 0 0px rgba(34, 197, 94, 0); animation: led-pulse 2s infinite ease-in-out; }
         @keyframes led-pulse { 0% { opacity: 0.3; background-color: #22c55e; box-shadow: 0 0 0px rgba(34, 197, 94, 0); } 50% { opacity: 1.0; background-color: #00ff00; box-shadow: 0 0 8px #00ff00; } 100% { opacity: 0.3; background-color: #22c55e; } }
         
-        /* Fixed Background Shorthand Bug */
         .category-badge { font-weight: 900; font-size: 36px; text-transform: uppercase; background-color: rgba(0, 0, 0, 0.15); padding: 2px 12px; border-radius: 6px; letter-spacing: 1px; margin-right: 20px; text-align: center; line-height: 1.1; min-width: 60px; border: 2px solid black; transition: background-color 0.3s; }
         
         .data-strip { display: flex; align-items: baseline; font-size: 36px; line-height: 1.1; }
@@ -53,20 +55,37 @@
         .scroll-wrapper { display: flex; align-items: center; width: max-content; will-change: transform; }
         .overflow-marquee { animation: marquee-bounce var(--scroll-time) linear infinite alternate; }
         @keyframes marquee-bounce { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--scroll-dist)); } }
+
+        /* Media Query for Portrait Mode */
+        @media (orientation: portrait) {
+            .top-row-wrapper { flex-direction: column; align-items: flex-start; }
+            .station-block { margin-bottom: 8px; margin-right: 0; }
+            .portrait-break { display: flex; flex-direction: row; align-items: center; }
+            
+            /* Slight sizing adjustments to fit nicely in stacked layout */
+            #val-station { font-size: 60px; }
+            .obs-time { font-size: 26px; }
+            .category-badge { font-size: 32px; }
+            .data-strip { font-size: 32px; }
+        }
     </style>
 </head>
 <body>
 <div class="metar-container">
     <div class="metar-bar" id="metar-container" style="opacity: 0; transition: opacity 0.5s;">
        <div class="metar-row">
-           <div class="station-block">
-               <div id="val-station">----</div>
-               <div class="obs-time"><span class="obs-time-label">Observed:</span> <span id="val-observed-date">--</span><span id="time-ago" class="time-ago-badge"></span><span id="heartbeat" class="heartbeat-led"></span></div>
-           </div>
-           <div class="category-badge" id="val-category">--</div>
-           <div class="data-strip">
-               <div class="data-item"><div class="label">Vis:</div><div class="val" id="val-vis">--</div></div><div class="divider">|</div>
-               <div class="data-item"><div class="label">Ceil:</div><div class="val" id="val-ceil">--</div></div>
+           <div class="top-row-wrapper">
+               <div class="station-block">
+                   <div id="val-station">----</div>
+                   <div class="obs-time"><span class="obs-time-label">Observed:</span> <span id="val-observed-date">--</span><span id="time-ago" class="time-ago-badge"></span><span id="heartbeat" class="heartbeat-led"></span></div>
+               </div>
+               <div class="portrait-break">
+                   <div class="category-badge" id="val-category">--</div>
+                   <div class="data-strip">
+                       <div class="data-item"><div class="label">Vis:</div><div class="val" id="val-vis">--</div></div><div class="divider">|</div>
+                       <div class="data-item"><div class="label">Ceil:</div><div class="val" id="val-ceil">--</div></div>
+                   </div>
+               </div>
            </div>
        </div>
        <div class="metar-row secondary-row" style="overflow: hidden;">
