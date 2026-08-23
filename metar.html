@@ -7,22 +7,22 @@
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: transparent; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-sizing: border-box; }
         .metar-container { width: 100%; height: 100%; box-sizing: border-box; }
         
-        .metar-bar { display: flex; flex-direction: column; justify-content: space-between; width: 100%; height: 100%; box-sizing: border-box; padding: 4px 15px; background-color: #e9ecef; color: #212529; white-space: nowrap; transition: background-color 0.5s; }
+        .metar-bar { display: flex; flex-direction: column; justify-content: space-between; width: 100%; height: 100%; box-sizing: border-box; padding: 6px 15px; background-color: #e9ecef; color: #212529; white-space: nowrap; transition: background-color 0.5s; }
         .metar-bar.offline { background-color: #cbd5e1 !important; }
         
         .metar-row { display: flex; flex-direction: row; align-items: center; width: 100%; line-height: 1.1; }
         .secondary-row { margin-left: 5px; }
         
-        .top-row-wrapper { display: flex; flex-direction: row; align-items: center; width: 100%; }
+        .top-row-wrapper { display: flex; flex-direction: row; align-items: center; width: 100%; justify-content: space-between; }
         .portrait-break { display: flex; flex-direction: row; align-items: center; }
         
-        .raw-row { font-family: monospace; font-size: 27px; background-color: #0f172a; color: #f8fafc; padding: 4px 12px; width: 100%; box-sizing: border-box; border-radius: 4px; display: flex; align-items: center; }
+        .raw-row { font-family: monospace; font-size: 26px; background-color: #0f172a; color: #f8fafc; padding: 4px 12px; width: 100%; box-sizing: border-box; border-radius: 4px; display: flex; align-items: center; }
         .raw-row .scroll-wrapper { display: flex; align-items: baseline; }
         .station-block { display: flex; align-items: baseline; margin-right: 20px; }
         
-        #val-station { font-weight: 900; font-size: 72px; letter-spacing: 1px; line-height: 0.9; }
+        #val-station { font-weight: 900; font-size: 68px; letter-spacing: 1px; line-height: 0.9; }
         
-        .obs-time { display: flex; align-items: baseline; font-size: 30px; margin-left: 12px; line-height: 1.1; }
+        .obs-time { display: flex; align-items: baseline; font-size: 28px; margin-left: 12px; line-height: 1.1; }
         .obs-time-label { font-weight: 300; font-size: 0.85em; margin-right: 6px; opacity: 0.8; }
         #val-observed-date { font-weight: 600; }
         .time-ago-badge { display: inline-block; font-size: 0.8em; font-weight: 700; color: #475569; text-transform: uppercase; margin-left: 12px; }
@@ -30,9 +30,9 @@
         .heartbeat-led { display: inline-block; width: 15px; height: 15px; border-radius: 50%; background-color: #22c55e; margin-left: 12px; align-self: center; box-shadow: 0 0 0px rgba(34, 197, 94, 0); animation: led-pulse 2s infinite ease-in-out; }
         @keyframes led-pulse { 0% { opacity: 0.3; background-color: #22c55e; box-shadow: 0 0 0px rgba(34, 197, 94, 0); } 50% { opacity: 1.0; background-color: #00ff00; box-shadow: 0 0 8px #00ff00; } 100% { opacity: 0.3; background-color: #22c55e; } }
         
-        .category-badge { font-weight: 900; font-size: 36px; text-transform: uppercase; background-color: rgba(0, 0, 0, 0.15); padding: 2px 12px; border-radius: 6px; letter-spacing: 1px; margin-right: 20px; text-align: center; line-height: 1.1; min-width: 60px; border: 2px solid black; transition: background-color 0.3s; }
+        .category-badge { font-weight: 900; font-size: 34px; text-transform: uppercase; background-color: rgba(0, 0, 0, 0.15); padding: 2px 12px; border-radius: 6px; letter-spacing: 1px; margin-right: 20px; text-align: center; line-height: 1.1; min-width: 60px; border: 2px solid black; transition: background-color 0.3s; }
         
-        .data-strip { display: flex; align-items: baseline; font-size: 36px; line-height: 1.1; }
+        .data-strip { display: flex; align-items: baseline; font-size: 34px; line-height: 1.1; }
         .data-item { display: flex; align-items: baseline; }
         .label { font-weight: 400; opacity: 0.85; margin-right: 6px; }
         .raw-label { margin-right: 12px; }
@@ -56,27 +56,42 @@
         .overflow-marquee { animation: marquee-bounce var(--scroll-time) linear infinite alternate; }
         @keyframes marquee-bounce { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--scroll-dist)); } }
 
-        /* Width-based layout trigger for narrow/portrait containers */
-        @media (max-width: 900px) {
-            .top-row-wrapper { flex-direction: column; align-items: flex-start; }
-            .station-block { margin-bottom: 6px; margin-right: 0; }
+        /* Multi-Line Break for Narrow Displays or Portrait */
+        @media (max-width: 900px), (orientation: portrait) {
+            .top-row-wrapper {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+            .station-block {
+                margin-right: 0;
+            }
+            .portrait-break {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                width: 100%;
+            }
             
-            #val-station { font-size: 58px; }
-            .obs-time { font-size: 24px; }
-            .category-badge { font-size: 30px; }
-            .data-strip { font-size: 30px; }
+            #val-station { font-size: 52px; }
+            .obs-time { font-size: 22px; }
+            .category-badge { font-size: 28px; }
+            .data-strip { font-size: 28px; }
         }
     </style>
 </head>
 <body>
 <div class="metar-container">
     <div class="metar-bar" id="metar-container" style="opacity: 0; transition: opacity 0.5s;">
+       <!-- Top Row (Split into 2 lines in portrait) -->
        <div class="metar-row">
            <div class="top-row-wrapper">
+               <!-- Top Line 1: Station and Observation Time -->
                <div class="station-block">
                    <div id="val-station">----</div>
                    <div class="obs-time"><span class="obs-time-label">Observed:</span> <span id="val-observed-date">--</span><span id="time-ago" class="time-ago-badge"></span><span id="heartbeat" class="heartbeat-led"></span></div>
                </div>
+               <!-- Line 2 in Portrait: Category Badge + Visibility/Ceiling Block -->
                <div class="portrait-break">
                    <div class="category-badge" id="val-category">--</div>
                    <div class="data-strip">
@@ -86,6 +101,8 @@
                </div>
            </div>
        </div>
+       
+       <!-- Secondary Data Row -->
        <div class="metar-row secondary-row" style="overflow: hidden;">
            <div class="scroll-wrapper">
                <div class="data-strip">
@@ -98,6 +115,8 @@
                </div>
            </div>
        </div>
+
+       <!-- Raw Data Marquee Row -->
        <div class="metar-row raw-row" style="overflow: hidden;">
            <div class="scroll-wrapper"><div class="label raw-label">METAR Data:</div><div class="val" id="val-raw" style="color: #f8fafc;">LOADING...</div></div>
        </div>   
