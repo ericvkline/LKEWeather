@@ -1,146 +1,281 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Real-Time Lightning Monitor</title>
+  <meta charset="utf-8" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body, html { width: 100%; height: 100%; background: #161b22; font-family: sans-serif; color: #fff; }
-    #map { width: 100%; height: 100%; }
-    .status-panel {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 1000;
-      background: rgba(13, 17, 23, 0.85);
-      border: 1px solid #30363d;
-      padding: 10px 14px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-    }
-    .indicator {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #ff4d4d;
-      margin-right: 6px;
-    }
-    .indicator.connected { background: #2ea44f; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Arial, sans-serif; overflow: hidden; }
+    #container { display: grid; width: 100vw; height: 100vh; box-sizing: border-box; transition: gap 0.5s ease, padding 0.5s ease; }
+    .layout-clear { grid-template-columns: 100%; grid-template-rows: auto 1fr; gap: 0; padding: 0; }
+    .layout-clear #status-banner { grid-column: 1; grid-row: 1; border-radius: 0; }
+    .layout-clear #map { display: none; }
+    .layout-clear #traffic-container { grid-column: 1; grid-row: 2; }
+    .layout-split { grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr; gap: 15px; padding: 15px; }
+    .layout-split #status-banner { grid-column: 1; grid-row: 1; border-radius: 8px; }
+    .layout-split #map { grid-column: 1; grid-row: 2; display: block; border-radius: 8px; border: 1px solid #334155; }
+    .layout-split #traffic-container { grid-column: 2; grid-row: 1 / span 2; }
+    #status-banner { padding: 8px 5px; text-align: center; font-size: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; transition: background-color 0.5s ease; box-shadow: 0 4px 10px rgba(0,0,0,0.4); z-index: 1000; }
+    .status-clear { background-color: #1e3a1e; color: #4ade80; border-bottom: 2px solid #2e7d32; }
+    .status-caution { background-color: #3e2723; color: #fb8c00; border-bottom: 2px solid #ef6c00; }
+    .status-warning { background-color: #4a1212; color: #f87171; border-bottom: 2px solid #b91c1c; animation: pulse 1.2s infinite; }
+    @keyframes pulse { 0% { background-color: #4a1212; } 50% { background-color: #310b0b; } 100% { background-color: #4a1212; } }
+    #traffic-container { position: relative; width: 100%; height: 100%; }
+    #traffic-container iframe { width: 100%; height: 100%; border: none; position: absolute; top: 0; left: 0; transition: border-radius 0.5s ease; border-radius: 0; }
+    .layout-split #traffic-container iframe { border-radius: 8px; border: 1px solid #334155; }
+    .subtext { font-size: 11px; font-weight: 400; margin-top: 4px; display: block; opacity: 0.9; text-transform: none; }
+    #diagnostics { position: absolute; bottom: 5px; left: 5px; background: rgba(15, 23, 42, 0.95); padding: 4px 8px; font-size: 10px; border-radius: 4px; font-family: monospace; z-index: 2000; border: 1px solid #334155; color: #94a3b8; }
+    .diag-val { font-weight: bold; color: #f1f5f9; }
   </style>
 </head>
 <body>
-  <div class="status-panel">
-    <span id="conn-status" class="indicator"></span>
-    <span id="conn-text">Connecting...</span>
-  </div>
+<div id="container" class="layout-clear">
+  <div id="status-banner" class="status-clear"><span id="banner-title">Connecting...</span><span class="subtext" id="time-val">Monitoring 30-mile radius around Lakehurst, NJ</span></div>
   <div id="map"></div>
+  <div id="traffic-container"><iframe src="https://adsb.lol/?baseMap=osm&overlays=tfr&lat=40.027508&lon=-74.301657&zoom=11&hideSideBar&hideButtons&mapDim=0&showGroundVehicles&enableLabels&trackLabels=all&noColorTrails&noPlanespotters&noLookupRoute&disableInfoBlock&disableMouseOverBlock" scrolling="no"></iframe></div>
+</div>
+<div id="diagnostics">WS: <span id="diag-status" style="color: #fb8c00;">INIT</span> | Svr: <span id="diag-server" class="diag-val">-</span> | Msgs: <span id="diag-msgs" class="diag-val">0</span> | Strikes: <span id="diag-strikes" class="diag-val" style="color: #fb8c00;">0</span> | Err: <span id="diag-error" style="color: #4ade80;">None</span></div>
+<script>
+  var LAKEHURST_LAT = 40.02382476361223; var LAKEHURST_LON = -74.39343607864961; var MONITOR_RADIUS_MILES = 30; var STRIKE_EXPIRATION_MS = 900000; 
+  var activeStrikes = new Array(); var socket = null; var radarLayer = null; var messageCount = 0; var strikeCount = 0; var currentServerIndex = 1; var wasVisible = false; var audioCtx = null;
+  var targetLatLng = L.latLng(LAKEHURST_LAT, LAKEHURST_LON);
+  var map = L.map('map', { zoomControl: false }).setView(targetLatLng, 8);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 18 }).addTo(map);
+  L.circleMarker(targetLatLng, { radius: 8, fillColor: '#00b0ff', color: '#ffffff', weight: 3, opacity: 1, fillOpacity: 1 }).addTo(map);
+  L.circle(targetLatLng, { radius: 24140.2, color: '#f87171', weight: 2, dashArray: '5, 5', fill: false }).addTo(map);
+  L.circle(targetLatLng, { radius: 48280.3, color: '#fb8c00', weight: 2, dashArray: '5, 5', fill: false }).addTo(map);
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    // Initialize Web Audio API Context
-    let audioCtx = null;
-
-    // Zero-interaction Autoplay Unlock Logic for Xibo / Embedded WebViews
-    function initAudio() {
-      if (!audioCtx) {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (AudioContextClass) {
-          audioCtx = new AudioContextClass();
-        }
-      }
-
-      // Play 0.1s silent WAV via HTML5 audio element to satisfy browser policies
-      const dummyAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
-      dummyAudio.play().then(() => {
-        if (audioCtx && audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
-      }).catch(() => {
-        // Ignored; falls back to Chromium flag: --autoplay-policy=no-user-gesture-required
-      });
+  // Unattended Kiosk Audio Context Warmup & Gesture Listener
+  function initAudioContext() {
+    if (!audioCtx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) { audioCtx = new AC(); }
     }
-
-    // Trigger audio initialization immediately on DOM ready and events
-    window.addEventListener('DOMContentLoaded', initAudio);
-    window.addEventListener('click', initAudio, { once: true });
-
-    // Synthesize audio tone for strike alerts
-    function playStrikeAlertTone() {
-      if (!audioCtx) initAudio();
-      if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-      if (!audioCtx) return;
-
-      try {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 tone
-        osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.3);
-
-        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.3);
-      } catch (err) {
-        // Audio playback error fallback
-      }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
     }
+  }
 
-    // Leaflet Map Setup
-    const map = L.map('map').setView([40.38, -74.06], 9);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 18,
-      attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+  // Attempt automatic initialization and bind global click/touch unlock triggers
+  window.addEventListener('load', function() { initAudioContext(); });
+  window.addEventListener('click', function() { initAudioContext(); }, { once: true });
+  window.addEventListener('touchstart', function() { initAudioContext(); }, { once: true });
+  
+  function playAlertTone(isCritical) { 
+    try { 
+      initAudioContext();
+      if (!audioCtx || audioCtx.state !== 'running') return;
 
-    // WebSocket Blitzortung Connection Logic
-    let ws;
-    function connectWebSocket() {
-      ws = new WebSocket('wss://ws1.blitzortung.org:3000/');
+      var osc = audioCtx.createOscillator(); 
+      var gain = audioCtx.createGain(); 
+      osc.connect(gain); 
+      gain.connect(audioCtx.destination); 
+      if (isCritical) { osc.type = 'square'; osc.frequency.value = 880; gain.gain.value = 0.15; } 
+      else { osc.type = 'sine'; osc.frequency.value = 440; gain.gain.value = 0.1; } 
+      osc.start(); 
+      setTimeout(function() { osc.stop(); osc.disconnect(); gain.disconnect(); }, isCritical ? 500 : 250); 
+    } catch (e) {} 
+  }
 
-      ws.onopen = () => {
-        document.getElementById('conn-status').classList.add('connected');
-        document.getElementById('conn-text').innerText = 'Live Feed Active';
-        ws.send(JSON.stringify({ west: -75.5, east: -72.5, north: 41.5, south: 39.5 }));
-      };
+  function saveHistory() { 
+    var historyData = new Array(); 
+    activeStrikes.forEach(function(strike) { historyData.push({ lat: strike.lat, lon: strike.lon, dist: strike.dist, time: strike.time }); }); 
+    localStorage.setItem('xiboStrikeHistory', JSON.stringify(historyData)); 
+  }
 
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.lat && data.lon) {
-            const marker = L.circleMarker([data.lat, data.lon], {
-              radius: 6,
-              color: '#ffea00',
-              fillColor: '#ffaa00',
-              fillOpacity: 0.8
-            }).addTo(map);
+  function loadHistory() { 
+    var saved = localStorage.getItem('xiboStrikeHistory'); 
+    if (saved) { 
+      try { 
+        var parsed = JSON.parse(saved); 
+        if (parsed) { 
+          parsed.forEach(function(data) { 
+            var now = Date.now(); 
+            if (now - data.time <= STRIKE_EXPIRATION_MS) { 
+              var strikePos = L.latLng(data.lat, data.lon); 
+              var marker = L.circleMarker(strikePos, { radius: 7, fillColor: '#ffea00', color: '#333333', weight: 2, opacity: 1, fillOpacity: 0.9, zIndexOffset: 1000 }).addTo(map); 
+              activeStrikes.push({ lat: data.lat, lon: data.lon, dist: data.dist, time: data.time, marker: marker }); 
+            } 
+          }); 
+          strikeCount = activeStrikes.length; 
+          document.getElementById('diag-strikes').textContent = strikeCount; 
+          updateUI(); 
+        } 
+      } catch (e) {} 
+    } 
+  }
 
-            playStrikeAlertTone();
+  function updateRadarLayer() { 
+    fetch('https://api.rainviewer.com/public/weather-maps.json')
+      .then(function(res) { return res.json(); })
+      .then(function(data) { 
+        var pastFrames = data.radar.past; 
+        var latestFrame = pastFrames.pop(); 
+        if (radarLayer) { map.removeLayer(radarLayer); radarLayer = null; } 
+        radarLayer = L.tileLayer('https://tilecache.rainviewer.com/v2/radar/' + latestFrame.time + '/256/{z}/{x}/{y}/2/1_1.png', { opacity: 0.45, maxZoom: 18, maxNativeZoom: 7, zIndex: 400 }).addTo(map); 
+      })
+      .catch(function(err) {}); 
+  }
 
-            // Automatic marker cleanup (15 minute expiration)
-            setTimeout(() => map.removeLayer(marker), 900000);
-          }
-        } catch (e) {}
-      };
+  function getDistanceInMiles(lat1, lon1, lat2, lon2) { 
+    var R = 3958.8; 
+    var dLat = (lat2 - lat1) * Math.PI / 180; 
+    var dLon = (lon2 - lon1) * Math.PI / 180; 
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2); 
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
+    return R * c; 
+  }
 
-      ws.onclose = () => {
-        document.getElementById('conn-status').classList.remove('connected');
-        document.getElementById('conn-text').innerText = 'Reconnecting...';
-        setTimeout(connectWebSocket, 5000);
-      };
-    }
+  function getProp(obj, key) { var desc = Object.getOwnPropertyDescriptor(obj, key); return desc ? desc.value : undefined; }
+  function setProp(obj, key, val) { Object.defineProperty(obj, key, { value: val, writable: true, configurable: true, enumerable: true }); }
+  function hasProp(obj, key) { return Object.getOwnPropertyDescriptor(obj, key) !== undefined; }
 
-    connectWebSocket();
-  </script>
+  function decodeLZW(compressedString) { 
+    var dictionary = new Object(); 
+    var currChar = compressedString.charAt(0); 
+    var oldPhrase = currChar; 
+    var out = new Array(); 
+    out.push(currChar); 
+    var code = 256; 
+    var phrase; 
+    for (var i = 1; i < compressedString.length; i++) { 
+      var currCode = compressedString.charCodeAt(i); 
+      if (currCode < 256) { phrase = compressedString.charAt(i); } 
+      else { 
+        if (hasProp(dictionary, currCode)) { phrase = getProp(dictionary, currCode); } 
+        else { phrase = oldPhrase + currChar; } 
+      } 
+      out.push(phrase); 
+      currChar = phrase.charAt(0); 
+      setProp(dictionary, code, oldPhrase + currChar); 
+      code++; 
+      oldPhrase = phrase; 
+    } 
+    return out.join(""); 
+  }
+
+  function initBlitzortungStream() { 
+    var diagStatus = document.getElementById('diag-status'); 
+    var diagServer = document.getElementById('diag-server'); 
+    var diagError = document.getElementById('diag-error'); 
+    var serverNum; 
+    if (currentServerIndex <= 5) { serverNum = currentServerIndex; } 
+    else if (currentServerIndex === 6) { serverNum = 7; } 
+    else { serverNum = 8; } 
+    currentServerIndex++; 
+    if (currentServerIndex > 7) { currentServerIndex = 1; } 
+    var serverUrl = 'wss://ws' + serverNum + '.blitzortung.org/'; 
+    diagServer.textContent = 'ws' + serverNum; 
+    diagStatus.textContent = 'CONN'; 
+    diagStatus.style.color = '#fb8c00'; 
+
+    if (socket) { 
+      try { 
+        socket.onopen = null; socket.onmessage = null; socket.onerror = null; socket.onclose = null;
+        socket.close(); 
+      } catch(e) {} 
+    } 
+
+    socket = new WebSocket(serverUrl); 
+    socket.onopen = function() { 
+      diagStatus.textContent = 'OPEN'; 
+      diagStatus.style.color = '#4ade80'; 
+      diagError.textContent = 'None'; 
+      diagError.style.color = '#4ade80'; 
+      socket.send(JSON.stringify({ a: 111 })); 
+      setTimeout(function() { if (messageCount === 0 && socket && socket.readyState === WebSocket.OPEN) { socket.send(JSON.stringify({ a: 542 })); } }, 6000); 
+      setTimeout(function() { if (messageCount === 0 && socket && socket.readyState === WebSocket.OPEN) { socket.send(JSON.stringify({ r: 1 })); } }, 12000); 
+      updateUI(); 
+    }; 
+    socket.onmessage = function(event) { 
+      messageCount++; 
+      document.getElementById('diag-msgs').textContent = messageCount; 
+      try { 
+        var decompressed = decodeLZW(event.data); 
+        var data = JSON.parse(decompressed); 
+        if (data && data.lat && data.lon) { 
+          var dist = getDistanceInMiles(LAKEHURST_LAT, LAKEHURST_LON, data.lat, data.lon); 
+          if (dist <= MONITOR_RADIUS_MILES) { 
+            var strikeTime = data.time ? (data.time / 1000000) : Date.now(); 
+            handleNewStrike(data.lat, data.lon, dist, strikeTime); 
+          } 
+        } 
+      } catch (err) {} 
+    }; 
+    socket.onerror = function(err) { diagStatus.textContent = 'ERR'; diagStatus.style.color = '#f87171'; }; 
+    socket.onclose = function() { 
+      diagStatus.textContent = 'CLSD'; 
+      diagStatus.style.color = '#f87171'; 
+      setTimeout(initBlitzortungStream, 5000); 
+    }; 
+  }
+
+  function handleNewStrike(lat, lon, distMiles, timestamp) { 
+    strikeCount++; 
+    document.getElementById('diag-strikes').textContent = strikeCount; 
+    var strikePos = L.latLng(lat, lon); 
+    var marker = L.circleMarker(strikePos, { radius: 7, fillColor: '#ffea00', color: '#333333', weight: 2, opacity: 1, fillOpacity: 0.9, zIndexOffset: 1000 }).addTo(map); 
+    activeStrikes.push({ lat: lat, lon: lon, dist: distMiles, time: timestamp, marker: marker }); 
+    if (distMiles < 15.0) { playAlertTone(true); } 
+    else if (distMiles <= 30.0) { playAlertTone(false); } 
+    updateUI(); 
+  }
+
+  function updateUI() { 
+    var now = Date.now(); 
+    var minDistance = Infinity; 
+    var validStrikes = new Array(); 
+    activeStrikes.forEach(function(strike) { 
+      var age = now - strike.time; 
+      if (age > STRIKE_EXPIRATION_MS) { 
+        map.removeLayer(strike.marker); 
+      } else { 
+        var opacity = 1 - (age / STRIKE_EXPIRATION_MS); 
+        strike.marker.setStyle({ fillOpacity: Math.max(0.2, opacity) }); 
+        if (strike.dist < minDistance) { minDistance = strike.dist; } 
+        validStrikes.push(strike); 
+      } 
+    }); 
+    activeStrikes = validStrikes; 
+    saveHistory(); 
+
+    var containerEl = document.getElementById('container'); 
+    var hasStrikes = activeStrikes.length > 0; 
+    if (hasStrikes) { 
+      containerEl.classList.remove('layout-clear'); 
+      containerEl.classList.add('layout-split'); 
+      if (!wasVisible) { 
+        setTimeout(function() { map.invalidateSize(); }, 100); 
+        wasVisible = true; 
+      } 
+    } else { 
+      containerEl.classList.remove('layout-split'); 
+      containerEl.classList.add('layout-clear'); 
+      wasVisible = false; 
+    } 
+
+    var banner = document.getElementById('status-banner'); 
+    var title = document.getElementById('banner-title'); 
+    var subtext = document.getElementById('time-val'); 
+    var timeString = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }); 
+    banner.className = ''; 
+
+    if (minDistance !== Infinity) { 
+      title.textContent = 'NEAREST STRIKE: ' + minDistance.toFixed(1) + ' MILES'; 
+      subtext.textContent = activeStrikes.length + ' strike(s) in last 15 mins within 30 mi | Updated ' + timeString; 
+      if (minDistance < 15.0) { banner.classList.add('status-warning'); } 
+      else if (minDistance <= 30.0) { banner.classList.add('status-caution'); } 
+      else { banner.classList.add('status-clear'); } 
+    } else { 
+      title.textContent = 'NO RECENT LIGHTNING STRIKES DETECTED'; 
+      subtext.textContent = 'All clear within 30 miles of Lakehurst, NJ | Connected live at ' + timeString; 
+      banner.classList.add('status-clear'); 
+    } 
+  }
+
+  loadHistory(); updateRadarLayer(); initBlitzortungStream(); 
+  setInterval(updateRadarLayer, 300000); 
+  setInterval(function() { updateUI(); map.invalidateSize(); }, 10000);
+</script>
 </body>
 </html>
