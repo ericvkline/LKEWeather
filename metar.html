@@ -1,235 +1,284 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <style>
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: transparent; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-sizing: border-box; }
-        .metar-container { width: 100%; height: 100%; box-sizing: border-box; }
+<!DOCTYPE html> 
+<html> 
+<head> 
+    <meta charset="utf-8" /> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
+    <style> 
+        html, body { 
+            margin: 0; 
+            padding: 0; 
+            width: 100%; 
+            height: 100%; 
+            overflow: hidden; 
+            background-color: transparent; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            box-sizing: border-box; 
+        } 
+        .metar-container { 
+            width: 100%; 
+            height: 100%; 
+            box-sizing: border-box; 
+        } 
+        .metar-bar { 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: flex-start; /* Fixed: Prevents spreading rows across container height */
+            gap: 6px; /* Tight, consistent spacing between rows */
+            width: 100%; 
+            height: 100%; 
+            box-sizing: border-box; 
+            padding: 8px 15px; 
+            background-color: #e9ecef; 
+            color: #212529; 
+            white-space: nowrap; 
+            transition: background-color 0.5s; 
+        } 
+        .metar-bar.offline { background-color: #cbd5e1 !important; } 
         
-        .metar-bar { display: flex; flex-direction: column; justify-content: space-between; width: 100%; height: 100%; box-sizing: border-box; padding: 6px 15px; background-color: #e9ecef; color: #212529; white-space: nowrap; transition: background-color 0.5s; }
-        .metar-bar.offline { background-color: #cbd5e1 !important; }
+        .metar-row { 
+            display: flex; 
+            flex-direction: row; 
+            align-items: center; 
+            width: 100%; 
+            line-height: 1.1; 
+        } 
+        .secondary-row { margin-left: 2px; } 
         
-        .metar-row { display: flex; flex-direction: row; align-items: center; width: 100%; line-height: 1.1; }
-        .secondary-row { margin-left: 5px; }
+        .top-row-wrapper { 
+            display: flex; 
+            flex-direction: row; 
+            align-items: center; 
+            width: 100%; 
+            justify-content: space-between; 
+        } 
+        .portrait-break { 
+            display: flex; 
+            flex-direction: row; 
+            align-items: center; 
+        } 
         
-        .top-row-wrapper { display: flex; flex-direction: row; align-items: center; width: 100%; justify-content: space-between; }
-        .portrait-break { display: flex; flex-direction: row; align-items: center; }
+        .raw-row { 
+            font-family: monospace; 
+            font-size: 24px; 
+            background-color: #0f172a; 
+            color: #f8fafc; 
+            padding: 4px 12px; 
+            width: 100%; 
+            box-sizing: border-box; 
+            border-radius: 4px; 
+            display: flex; 
+            align-items: center; 
+            margin-top: auto; /* Pushes raw METAR bar cleanly to bottom */
+        } 
+        .raw-row .scroll-wrapper { display: flex; align-items: baseline; } 
+        .station-block { display: flex; align-items: baseline; margin-right: 20px; } 
         
-        .raw-row { font-family: monospace; font-size: 26px; background-color: #0f172a; color: #f8fafc; padding: 4px 12px; width: 100%; box-sizing: border-box; border-radius: 4px; display: flex; align-items: center; }
-        .raw-row .scroll-wrapper { display: flex; align-items: baseline; }
-        .station-block { display: flex; align-items: baseline; margin-right: 20px; }
+        #val-station { font-weight: 900; font-size: 64px; letter-spacing: 1px; line-height: 0.9; } 
         
-        #val-station { font-weight: 900; font-size: 68px; letter-spacing: 1px; line-height: 0.9; }
+        .obs-time { display: flex; align-items: baseline; font-size: 26px; margin-left: 12px; line-height: 1.1; } 
+        .obs-time-label { font-weight: 300; font-size: 0.85em; margin-right: 6px; opacity: 0.8; } 
+        #val-observed-date { font-weight: 600; } 
+        .time-ago-badge { display: inline-block; font-size: 0.8em; font-weight: 700; color: #475569; text-transform: uppercase; margin-left: 12px; } 
         
-        .obs-time { display: flex; align-items: baseline; font-size: 28px; margin-left: 12px; line-height: 1.1; }
-        .obs-time-label { font-weight: 300; font-size: 0.85em; margin-right: 6px; opacity: 0.8; }
-        #val-observed-date { font-weight: 600; }
-        .time-ago-badge { display: inline-block; font-size: 0.8em; font-weight: 700; color: #475569; text-transform: uppercase; margin-left: 12px; }
+        .heartbeat-led { display: inline-block; width: 15px; height: 15px; border-radius: 50%; background-color: #22c55e; margin-left: 12px; align-self: center; box-shadow: 0 0 0px rgba(34, 197, 94, 0); animation: led-pulse 2s infinite ease-in-out; } 
+        @keyframes led-pulse { 0% { opacity: 0.3; background-color: #22c55e; box-shadow: 0 0 0px rgba(34, 197, 94, 0); } 50% { opacity: 1.0; background-color: #00ff00; box-shadow: 0 0 8px #00ff00; } 100% { opacity: 0.3; background-color: #22c55e; } } 
         
-        .heartbeat-led { display: inline-block; width: 15px; height: 15px; border-radius: 50%; background-color: #22c55e; margin-left: 12px; align-self: center; box-shadow: 0 0 0px rgba(34, 197, 94, 0); animation: led-pulse 2s infinite ease-in-out; }
-        @keyframes led-pulse { 0% { opacity: 0.3; background-color: #22c55e; box-shadow: 0 0 0px rgba(34, 197, 94, 0); } 50% { opacity: 1.0; background-color: #00ff00; box-shadow: 0 0 8px #00ff00; } 100% { opacity: 0.3; background-color: #22c55e; } }
+        .category-badge { font-weight: 900; font-size: 32px; text-transform: uppercase; background-color: rgba(0, 0, 0, 0.15); padding: 2px 12px; border-radius: 6px; letter-spacing: 1px; margin-right: 20px; text-align: center; line-height: 1.1; min-width: 60px; border: 2px solid black; transition: background-color 0.3s; } 
         
-        .category-badge { font-weight: 900; font-size: 34px; text-transform: uppercase; background-color: rgba(0, 0, 0, 0.15); padding: 2px 12px; border-radius: 6px; letter-spacing: 1px; margin-right: 20px; text-align: center; line-height: 1.1; min-width: 60px; border: 2px solid black; transition: background-color 0.3s; }
+        .data-strip { display: flex; align-items: baseline; font-size: 32px; line-height: 1.1; } 
+        .data-item { display: flex; align-items: baseline; } 
+        .label { font-weight: 400; opacity: 0.85; margin-right: 6px; } 
+        .raw-label { margin-right: 12px; } 
+        .val { font-weight: 700; transition: background-color 0.3s; } 
+        .divider { margin: 0 10px; font-weight: 300; opacity: 0.4; } 
         
-        .data-strip { display: flex; align-items: baseline; font-size: 34px; line-height: 1.1; }
-        .data-item { display: flex; align-items: baseline; }
-        .label { font-weight: 400; opacity: 0.85; margin-right: 6px; }
-        .raw-label { margin-right: 12px; }
-        .val { font-weight: 700; transition: background-color 0.3s; }
-        .divider { margin: 0 10px; font-weight: 300; opacity: 0.4; }
-        
-        .metar-bar.VFR .category-badge, .metar-bar.vfr .category-badge { background-color: #28a745 !important; color: #ffffff !important; }       
-        .metar-bar.MVFR .category-badge, .metar-bar.mvfr .category-badge { background-color: #007bff !important; color: #ffffff !important; }      
-        .metar-bar.IFR .category-badge, .metar-bar.ifr .category-badge { background-color: #dc3545 !important; color: #ffffff !important; }       
-        .metar-bar.LIFR .category-badge, .metar-bar.lifr .category-badge { background-color: #d63384 !important; color: #ffffff !important; }
-        .metar-bar.offline .category-badge { background-color: #475569 !important; color: #ffffff !important; border-color: #1e293b !important; }
+        .metar-bar.VFR .category-badge, .metar-bar.vfr .category-badge { background-color: #28a745 !important; color: #ffffff !important; } 
+        .metar-bar.MVFR .category-badge, .metar-bar.mvfr .category-badge { background-color: #007bff !important; color: #ffffff !important; } 
+        .metar-bar.IFR .category-badge, .metar-bar.ifr .category-badge { background-color: #dc3545 !important; color: #ffffff !important; } 
+        .metar-bar.LIFR .category-badge, .metar-bar.lifr .category-badge { background-color: #d63384 !important; color: #ffffff !important; } 
+        .metar-bar.offline .category-badge { background-color: #475569 !important; color: #ffffff !important; border-color: #1e293b !important; } 
         
         .val.vfr { background-color: #28a745 !important; color: #ffffff !important; } 
         .val.mvfr { background-color: #007bff !important; color: #ffffff !important; } 
         .val.ifr { background-color: #dc3545 !important; color: #ffffff !important; } 
-        .val.lifr { background-color: #d63384 !important; color: #ffffff !important; }
-        .val.offline { background-color: #475569 !important; color: #ffffff !important; border-color: #1e293b !important; }
-        .val.vfr, .val.mvfr, .val.ifr, .val.lifr, .val.offline { padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; line-height: 1.1; border:1px solid black; }
+        .val.lifr { background-color: #d63384 !important; color: #ffffff !important; } 
+        .val.offline { background-color: #475569 !important; color: #ffffff !important; border-color: #1e293b !important; } 
+        .val.vfr, .val.mvfr, .val.ifr, .val.lifr, .val.offline { padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; line-height: 1.1; border:1px solid black; } 
         
-        .scroll-wrapper { display: flex; align-items: center; width: max-content; will-change: transform; }
-        .overflow-marquee { animation: marquee-bounce var(--scroll-time) linear infinite alternate; }
-        @keyframes marquee-bounce { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--scroll-dist)); } }
+        .scroll-wrapper { display: flex; align-items: center; width: max-content; will-change: transform; } 
+        .overflow-marquee { animation: marquee-bounce var(--scroll-time) linear infinite alternate; } 
+        @keyframes marquee-bounce { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--scroll-dist)); } } 
 
-        /* Multi-Line Break for Narrow Displays or Portrait */
-        /* Inside metar.html <style> */
-@media screen and (max-width: 1100px), screen and (max-aspect-ratio: 1/1), (orientation: portrait) {
-    .top-row-wrapper {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 4px;
-    }
+        /* Multi-Line Break for Narrow Displays or Portrait */ 
+        @media screen and (max-width: 1100px), screen and (max-aspect-ratio: 1/1), (orientation: portrait) { 
+            .top-row-wrapper { 
+                flex-direction: column !important; 
+                align-items: flex-start !important; 
+                gap: 2px !important; /* Fixed tight line break spacing */
+            } 
+            .portrait-break { 
+                display: flex !important; 
+                flex-direction: row !important; 
+                align-items: center !important; 
+                width: 100%; 
+            } 
+            #val-station { font-size: 46px !important; } 
+            .obs-time { font-size: 20px !important; } 
+            .category-badge { font-size: 26px !important; } 
+            .data-strip { font-size: 26px !important; } 
+        } 
+    </style> 
+</head> 
+<body> 
+<div class="metar-container"> 
+    <div class="metar-bar" id="metar-container" style="opacity: 0; transition: opacity 0.5s;"> 
+       <!-- Top Row (Split into 2 lines in portrait) --> 
+       <div class="metar-row"> 
+           <div class="top-row-wrapper"> 
+               <!-- Top Line 1: Station and Observation Time --> 
+               <div class="station-block"> 
+                   <div id="val-station">----</div> 
+                   <div class="obs-time"><span class="obs-time-label">Observed:</span> <span id="val-observed-date">--</span><span id="time-ago" class="time-ago-badge"></span><span id="heartbeat" class="heartbeat-led"></span></div> 
+               </div> 
+               <!-- Line 2 in Portrait: Category Badge + Visibility/Ceiling Block --> 
+               <div class="portrait-break"> 
+                   <div class="category-badge" id="val-category">--</div> 
+                   <div class="data-strip"> 
+                       <div class="data-item"><div class="label">Vis:</div><div class="val" id="val-vis">--</div></div><div class="divider">|</div> 
+                       <div class="data-item"><div class="label">Ceil:</div><div class="val" id="val-ceil">--</div></div> 
+                   </div> 
+               </div> 
+           </div> 
+       </div> 
 
-    .portrait-break {
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        width: 100%;
-    }
+       <!-- Secondary Data Row --> 
+       <div class="metar-row secondary-row" style="overflow: hidden;"> 
+           <div class="scroll-wrapper"> 
+               <div class="data-strip"> 
+                   <div class="data-item"><div class="label">Wind:</div><div class="val" id="val-wind">--</div></div><div class="divider">|</div> 
+                   <div class="data-item" id="block-clouds" style="display:none;"><div class="label">Clouds:</div><div class="val" id="val-clouds">--</div></div><div class="divider" id="div-clouds" style="display:none;">|</div> 
+                   <div class="data-item" id="block-wx" style="display:none;"><div class="label">Wx:</div><div class="val" id="val-wx">--</div></div><div class="divider" id="div-wx" style="display:none;">|</div> 
+                   <div class="data-item"><div class="label">Temp:</div><div class="val" id="val-temp">--</div></div><div class="divider">|</div> 
+                   <div class="data-item"><div class="label">Humidity:</div><div class="val" id="val-humidity">--</div></div><div class="divider">|</div> 
+                   <div class="data-item"><div class="label">Alt:</div><div class="val" id="val-alt">--</div></div> 
+               </div> 
+           </div> 
+       </div> 
 
-    #val-station { font-size: 48px !important; }
-    .obs-time { font-size: 20px !important; }
-    .category-badge { font-size: 26px !important; }
-    .data-strip { font-size: 26px !important; }
-}
-
-    </style>
-</head>
-<body>
-<div class="metar-container">
-    <div class="metar-bar" id="metar-container" style="opacity: 0; transition: opacity 0.5s;">
-       <!-- Top Row (Split into 2 lines in portrait) -->
-       <div class="metar-row">
-           <div class="top-row-wrapper">
-               <!-- Top Line 1: Station and Observation Time -->
-               <div class="station-block">
-                   <div id="val-station">----</div>
-                   <div class="obs-time"><span class="obs-time-label">Observed:</span> <span id="val-observed-date">--</span><span id="time-ago" class="time-ago-badge"></span><span id="heartbeat" class="heartbeat-led"></span></div>
-               </div>
-               <!-- Line 2 in Portrait: Category Badge + Visibility/Ceiling Block -->
-               <div class="portrait-break">
-                   <div class="category-badge" id="val-category">--</div>
-                   <div class="data-strip">
-                       <div class="data-item"><div class="label">Vis:</div><div class="val" id="val-vis">--</div></div><div class="divider">|</div>
-                       <div class="data-item"><div class="label">Ceil:</div><div class="val" id="val-ceil">--</div></div>
-                   </div>
-               </div>
-           </div>
-       </div>
-       
-       <!-- Secondary Data Row -->
-       <div class="metar-row secondary-row" style="overflow: hidden;">
-           <div class="scroll-wrapper">
-               <div class="data-strip">
-                   <div class="data-item"><div class="label">Wind:</div><div class="val" id="val-wind">--</div></div><div class="divider">|</div>
-                   <div class="data-item" id="block-clouds" style="display:none;"><div class="label">Clouds:</div><div class="val" id="val-clouds">--</div></div><div class="divider" id="div-clouds" style="display:none;">|</div>
-                   <div class="data-item" id="block-wx" style="display:none;"><div class="label">Wx:</div><div class="val" id="val-wx">--</div></div><div class="divider" id="div-wx" style="display:none;">|</div>
-                   <div class="data-item"><div class="label">Temp:</div><div class="val" id="val-temp">--</div></div><div class="divider">|</div>
-                   <div class="data-item"><div class="label">Humidity:</div><div class="val" id="val-humidity">--</div></div><div class="divider">|</div>
-                   <div class="data-item"><div class="label">Alt:</div><div class="val" id="val-alt">--</div></div>
-               </div>
-           </div>
-       </div>
-
-       <!-- Raw Data Marquee Row -->
-       <div class="metar-row raw-row" style="overflow: hidden;">
-           <div class="scroll-wrapper"><div class="label raw-label">METAR Data:</div><div class="val" id="val-raw" style="color: #f8fafc;">LOADING...</div></div>
+       <!-- Raw Data Marquee Row --> 
+       <div class="metar-row raw-row" style="overflow: hidden;"> 
+           <div class="scroll-wrapper"><div class="label raw-label">METAR Data:</div><div class="val" id="val-raw" style="color: #f8fafc;">LOADING...</div></div> 
        </div>   
-    </div>
-</div>
-<script>
-    var container = document.getElementById('metar-container');
-    var globalObsDate = new Date();
-    var marqueeTimeout = null;
-    var currentFetchController = null;
+    </div> 
+</div> 
+<script> 
+    var container = document.getElementById('metar-container'); 
+    var globalObsDate = new Date(); 
+    var marqueeTimeout = null; 
+    var currentFetchController = null; 
     
-    function showOfflineState() {
-        document.getElementById('val-station').textContent = "DISC";
-        document.getElementById('val-category').textContent = "OFFLINE";
+    function showOfflineState() { 
+        document.getElementById('val-station').textContent = "DISC"; 
+        document.getElementById('val-category').textContent = "OFFLINE"; 
         
-        var errorString = "ERROR";
-        document.getElementById('val-vis').textContent = errorString;
-        document.getElementById('val-ceil').textContent = errorString;
-        document.getElementById('val-wind').textContent = errorString;
-        document.getElementById('val-temp').textContent = "--";
-        document.getElementById('val-humidity').textContent = "--";
-        document.getElementById('val-alt').textContent = "--";
+        var errorString = "ERROR"; 
+        document.getElementById('val-vis').textContent = errorString; 
+        document.getElementById('val-ceil').textContent = errorString; 
+        document.getElementById('val-wind').textContent = errorString; 
+        document.getElementById('val-temp').textContent = "--"; 
+        document.getElementById('val-humidity').textContent = "--"; 
+        document.getElementById('val-alt').textContent = "--"; 
         
-        var vals = document.querySelectorAll('.val');
-        for (var i = 0; i < vals.length; i++) {
-            if (vals[i].id !== 'val-raw') {
-                vals[i].className = 'val offline';
-            }
-        }
+        var vals = document.querySelectorAll('.val'); 
+        for (var i = 0; i < vals.length; i++) { 
+            if (vals[i].id !== 'val-raw') { 
+                vals[i].className = 'val offline'; 
+            } 
+        } 
         
-        document.getElementById('block-clouds').style.display = 'none';
-        document.getElementById('div-clouds').style.display = 'none';
-        document.getElementById('block-wx').style.display = 'none';
-        document.getElementById('div-wx').style.display = 'none';
+        document.getElementById('block-clouds').style.display = 'none'; 
+        document.getElementById('div-clouds').style.display = 'none'; 
+        document.getElementById('block-wx').style.display = 'none'; 
+        document.getElementById('div-wx').style.display = 'none'; 
         
-        document.getElementById('val-observed-date').textContent = formatMetarDate(new Date());
-        document.getElementById('val-raw').textContent = "CRITICAL: NETWORK DISCONNECTED. NO LIVE METAR DATA.";
-        document.getElementById('val-raw').style.color = "#ef4444";
+        document.getElementById('val-observed-date').textContent = formatMetarDate(new Date()); 
+        document.getElementById('val-raw').textContent = "CRITICAL: NETWORK DISCONNECTED. NO LIVE METAR DATA."; 
+        document.getElementById('val-raw').style.color = "#ef4444"; 
         
-        container.className = 'metar-bar offline';
-        container.style.opacity = 1;
+        container.className = 'metar-bar offline'; 
+        container.style.opacity = 1; 
         
-        var led = document.getElementById('heartbeat');
-        if (led) { led.style.animation = "none"; led.style.backgroundColor = "#94a3b8"; }
-    }
+        var led = document.getElementById('heartbeat'); 
+        if (led) { led.style.animation = "none"; led.style.backgroundColor = "#94a3b8"; } 
+    } 
 
-    function initializeMetarParser(rawText) {
-        if (!rawText) return;
-        var p = { raw: rawText.trim(), station: '----', visVal: null, visStr: 'Missing', ceilVal: 99999, ceilStr: 'None', clouds: new Array(), wx: new Array(), tempC: null, dewC: null, tempF: '--', dewF: '--', humidity: '--', windStr: '--', windSpd: 0, windGst: 0, altStr: '--', cat: 'VFR' };
+    function initializeMetarParser(rawText) { 
+        if (!rawText) return; 
+        var p = { raw: rawText.trim(), station: '----', visVal: null, visStr: 'Missing', ceilVal: 99999, ceilStr: 'None', clouds: new Array(), wx: new Array(), tempC: null, dewC: null, tempF: '--', dewF: '--', humidity: '--', windStr: '--', windSpd: 0, windGst: 0, altStr: '--', cat: 'VFR' }; 
         
-        document.getElementById('val-raw').textContent = p.raw;
-        document.getElementById('val-raw').style.color = "#f8fafc";
+        document.getElementById('val-raw').textContent = p.raw; 
+        document.getElementById('val-raw').style.color = "#f8fafc"; 
         
-        var vals = document.querySelectorAll('.val');
-        for (var i = 0; i < vals.length; i++) {
-            if (vals[i].id !== 'val-raw' && vals[i].id !== 'val-vis' && vals[i].id !== 'val-ceil') {
-                vals[i].className = 'val';
-            }
-        }
+        var vals = document.querySelectorAll('.val'); 
+        for (var i = 0; i < vals.length; i++) { 
+            if (vals[i].id !== 'val-raw' && vals[i].id !== 'val-vis' && vals[i].id !== 'val-ceil') { 
+                vals[i].className = 'val'; 
+            } 
+        } 
         
-        var led = document.getElementById('heartbeat');
-        if (led) { led.style.animation = "led-pulse 2s infinite ease-in-out"; led.style.backgroundColor = ""; }
+        var led = document.getElementById('heartbeat'); 
+        if (led) { led.style.animation = "led-pulse 2s infinite ease-in-out"; led.style.backgroundColor = ""; } 
         
-        var tokens = p.raw.split(' '); var rmkIndex = tokens.indexOf('RMK');
-        if (rmkIndex !== -1) tokens = tokens.slice(0, rmkIndex);
-        var firstTok = tokens.shift();
-        if (firstTok === 'METAR' || firstTok === 'SPECI' || firstTok === 'COR') p.station = tokens.shift(); else p.station = firstTok;
+        var tokens = p.raw.split(' '); var rmkIndex = tokens.indexOf('RMK'); 
+        if (rmkIndex !== -1) tokens = tokens.slice(0, rmkIndex); 
+        var firstTok = tokens.shift(); 
+        if (firstTok === 'METAR' || firstTok === 'SPECI' || firstTok === 'COR') p.station = tokens.shift(); else p.station = firstTok; 
         
-        while (tokens.length > 0) {
-            var t = tokens.shift();
-            if (/^\d{6}Z$/.test(t)) {
-                var day = parseInt(t.substring(0, 2), 10); var hr = parseInt(t.substring(2, 4), 10); var min = parseInt(t.substring(4, 6), 10);
-                var now = new Date(); var year = now.getUTCFullYear(); var month = now.getUTCMonth();
-                if (day > now.getUTCDate() + 5) month -= 1; globalObsDate = new Date(Date.UTC(year, month, day, hr, min));
-            } else if (/^(VRB|\d{3})(\d{2,3})(G\d{2,3})?(KT|MPS)$/.test(t)) {
-                var wMatch = t.match(/^(VRB|\d{3})(\d{2,3})(G\d{2,3})?(KT|MPS)$/); var wArr = Array.from(wMatch); wArr.shift(); var dir = wArr.shift(); p.windSpd = parseInt(wArr.shift(), 10); var gstStr = wArr.shift(); p.windGst = gstStr ? parseInt(gstStr.substring(1), 10) : 0;
-                if (dir === '000' && p.windSpd === 0) p.windStr = 'Calm'; else { p.windStr = (dir === 'VRB' ? 'VRB' : dir + '°') + ' at ' + p.windSpd + ' kts'; if (p.windGst > 0) p.windStr += ' (Gusts to ' + p.windGst + ' kts)'; }
-            } else if (/^(M|P)?(\d{1,2}\s+)?(\d{1,2}\/\d{1,2}|\d{1,4})SM$/.test(t)) {
-                p.visStr = t.replace('SM', ' SM'); var vClean = t.replace('SM', '').replace('M', '').replace('P', '');
-                if (vClean.includes('/')) { if (vClean.includes(' ')) { var parts = vClean.split(' '); var whole = parseInt(parts.shift(), 10); var frac = parts.shift().split('/'); p.visVal = whole + (parseInt(frac.shift(), 10) / parseInt(frac.shift(), 10)); } else { var frac2 = vClean.split('/'); p.visVal = parseInt(frac2.shift(), 10) / parseInt(frac2.shift(), 10); } } else p.visVal = parseInt(vClean, 10);
-                if (t.startsWith('M')) p.visVal -= 0.1;
-            } else if (/^(FEW|SCT|BKN|OVC|VV)(\d{3})(CB|TCU)?$/.test(t)) {
-                var cMatch = t.match(/^(FEW|SCT|BKN|OVC|VV)(\d{3})(CB|TCU)?$/); var cArr = Array.from(cMatch); cArr.shift(); var type = cArr.shift(); var hgt = parseInt(cArr.shift(), 10) * 100; var mod = cArr.shift() || ''; var txt = type + ' @ ' + hgt.toLocaleString() + (mod ? ' ' + mod : ''); p.clouds.push(txt);
-                if ((type === 'BKN' || type === 'OVC' || type === 'VV') && hgt < p.ceilVal) { p.ceilVal = hgt; p.ceilStr = txt; }
-            } else if (t === 'CLR' || t === 'SKC' || t === 'CAVOK') { p.ceilStr = 'None'; p.clouds.push('Clear');
-            } else if (/^(M?\d{2})\/(M?\d{2})?$/.test(t)) {
-                var tMatch = t.split('/'); var rawTc = tMatch.shift(); p.tempC = parseInt(rawTc.replace('M', '-'), 10); p.tempF = Math.round((p.tempC * 9/5) + 32);
-                if (tMatch.length > 0) { var rawDew = tMatch.shift(); if (rawDew !== '') { p.dewC = parseInt(rawDew.replace('M', '-'), 10); p.dewF = Math.round((p.dewC * 9/5) + 32); } }
-                if (p.tempC !== null && p.dewC !== null) { var tc = p.tempC; var tdc = p.dewC; var es = 6.11 * Math.pow(10, (7.5 * tc) / (237.3 + tc)); var e = 6.11 * Math.pow(10, (7.5 * tdc) / (237.3 + tdc)); p.humidity = Math.min(100, Math.max(0, Math.round((e / es) * 100))) + '%'; }
-            } else if (/^A(\d{4})$/.test(t)) p.altStr = (parseInt(t.substring(1), 10) / 100).toFixed(2) + ' inHg';
-            else if (/^(\+|-|VC)?(MI|PR|BC|DR|BL|SH|TS|FZ)?(DZ|RA|SN|SG|IC|PE|GR|GS|UP)?(BR|FG|FU|VA|DU|SA|HZ|PY)?(PO|SQ|FC|SS|DS)?$/.test(t) && t.length > 1) { if (!t.startsWith('A') && !t.includes('/')) p.wx.push(t); }
-        }
+        while (tokens.length > 0) { 
+            var t = tokens.shift(); 
+            if (/^\d{6}Z$/.test(t)) { 
+                var day = parseInt(t.substring(0, 2), 10); var hr = parseInt(t.substring(2, 4), 10); var min = parseInt(t.substring(4, 6), 10); 
+                var now = new Date(); var year = now.getUTCFullYear(); var month = now.getUTCMonth(); 
+                if (day > now.getUTCDate() + 5) month -= 1; globalObsDate = new Date(Date.UTC(year, month, day, hr, min)); 
+            } else if (/^(VRB|\d{3})(\d{2,3})(G\d{2,3})?(KT|MPS)$/.test(t)) { 
+                var wMatch = t.match(/^(VRB|\d{3})(\d{2,3})(G\d{2,3})?(KT|MPS)$/); var wArr = Array.from(wMatch); wArr.shift(); var dir = wArr.shift(); p.windSpd = parseInt(wArr.shift(), 10); var gstStr = wArr.shift(); p.windGst = gstStr ? parseInt(gstStr.substring(1), 10) : 0; 
+                if (dir === '000' && p.windSpd === 0) p.windStr = 'Calm'; else { p.windStr = (dir === 'VRB' ? 'VRB' : dir + '°') + ' at ' + p.windSpd + ' kts'; if (p.windGst > 0) p.windStr += ' (Gusts to ' + p.windGst + ' kts)'; } 
+            } else if (/^(M|P)?(\d{1,2}\s+)?(\d{1,2}\/\d{1,2}|\d{1,4})SM$/.test(t)) { 
+                p.visStr = t.replace('SM', ' SM'); var vClean = t.replace('SM', '').replace('M', '').replace('P', ''); 
+                if (vClean.includes('/')) { if (vClean.includes(' ')) { var parts = vClean.split(' '); var whole = parseInt(parts.shift(), 10); var frac = parts.shift().split('/'); p.visVal = whole + (parseInt(frac.shift(), 10) / parseInt(frac.shift(), 10)); } else { var frac2 = vClean.split('/'); p.visVal = parseInt(frac2.shift(), 10) / parseInt(frac2.shift(), 10); } } else p.visVal = parseInt(vClean, 10); 
+                if (t.startsWith('M')) p.visVal -= 0.1; 
+            } else if (/^(FEW|SCT|BKN|OVC|VV)(\d{3})(CB|TCU)?$/.test(t)) { 
+                var cMatch = t.match(/^(FEW|SCT|BKN|OVC|VV)(\d{3})(CB|TCU)?$/); var cArr = Array.from(cMatch); cArr.shift(); var type = cArr.shift(); var hgt = parseInt(cArr.shift(), 10) * 100; var mod = cArr.shift() || ''; var txt = type + ' @ ' + hgt.toLocaleString() + (mod ? ' ' + mod : ''); p.clouds.push(txt); 
+                if ((type === 'BKN' || type === 'OVC' || type === 'VV') && hgt < p.ceilVal) { p.ceilVal = hgt; p.ceilStr = txt; } 
+            } else if (t === 'CLR' || t === 'SKC' || t === 'CAVOK') { p.ceilStr = 'None'; p.clouds.push('Clear'); 
+            } else if (/^(M?\d{2})\/(M?\d{2})?$/.test(t)) { 
+                var tMatch = t.split('/'); var rawTc = tMatch.shift(); p.tempC = parseInt(rawTc.replace('M', '-'), 10); p.tempF = Math.round((p.tempC * 9/5) + 32); 
+                if (tMatch.length > 0) { var rawDew = tMatch.shift(); if (rawDew !== '') { p.dewC = parseInt(rawDew.replace('M', '-'), 10); p.dewF = Math.round((p.dewC * 9/5) + 32); } } 
+                if (p.tempC !== null && p.dewC !== null) { var tc = p.tempC; var tdc = p.dewC; var es = 6.11 * Math.pow(10, (7.5 * tc) / (237.3 + tc)); var e = 6.11 * Math.pow(10, (7.5 * tdc) / (237.3 + tdc)); p.humidity = Math.min(100, Math.max(0, Math.round((e / es) * 100))) + '%'; } 
+            } else if (/^A(\d{4})$/.test(t)) p.altStr = (parseInt(t.substring(1), 10) / 100).toFixed(2) + ' inHg'; 
+            else if (/^(\+|-|VC)?(MI|PR|BC|DR|BL|SH|TS|FZ)?(DZ|RA|SN|SG|IC|PE|GR|GS|UP)?(BR|FG|FU|VA|DU|SA|HZ|PY)?(PO|SQ|FC|SS|DS)?$/.test(t) && t.length > 1) { if (!t.startsWith('A') && !t.includes('/')) p.wx.push(t); } 
+        } 
         
-        if (p.visVal === null) p.cat = (p.ceilVal < 500) ? 'LIFR' : 'IFR'; else if (p.visVal < 1 || p.ceilVal < 500) p.cat = 'LIFR'; else if (p.visVal < 3 || p.ceilVal < 1000) p.cat = 'IFR'; else if (p.visVal <= 5 || p.ceilVal <= 3000) p.cat = 'MVFR'; else p.cat = 'VFR';
+        if (p.visVal === null) p.cat = (p.ceilVal < 500) ? 'LIFR' : 'IFR'; else if (p.visVal < 1 || p.ceilVal < 500) p.cat = 'LIFR'; else if (p.visVal < 3 || p.ceilVal < 1000) p.cat = 'IFR'; else if (p.visVal <= 5 || p.ceilVal <= 3000) p.cat = 'MVFR'; else p.cat = 'VFR'; 
 
-        document.getElementById('val-station').textContent = p.station; document.getElementById('val-vis').textContent = p.visStr; document.getElementById('val-ceil').textContent = p.ceilStr; document.getElementById('val-wind').textContent = p.windStr; document.getElementById('val-temp').textContent = p.tempF + '°F / ' + p.dewF + '°F'; document.getElementById('val-humidity').textContent = p.humidity; document.getElementById('val-alt').textContent = p.altStr; document.getElementById('time-ago').setAttribute('data-obs-time', globalObsDate.getTime());
-        if (p.wx.length > 0) { document.getElementById('block-wx').style.display = 'flex'; document.getElementById('div-wx').style.display = 'block'; document.getElementById('val-wx').textContent = p.wx.join(' '); } else { document.getElementById('block-wx').style.display = 'none'; document.getElementById('div-wx').style.display = 'none'; }
-        if (p.clouds.length > 0 && p.ceilStr === 'None') { document.getElementById('block-clouds').style.display = 'flex'; document.getElementById('div-clouds').style.display = 'block'; document.getElementById('val-clouds').textContent = p.clouds.join(', '); } else { document.getElementById('block-clouds').style.display = 'none'; document.getElementById('div-clouds').style.display = 'none'; }
+        document.getElementById('val-station').textContent = p.station; document.getElementById('val-vis').textContent = p.visStr; document.getElementById('val-ceil').textContent = p.ceilStr; document.getElementById('val-wind').textContent = p.windStr; document.getElementById('val-temp').textContent = p.tempF + '°F / ' + p.dewF + '°F'; document.getElementById('val-humidity').textContent = p.humidity; document.getElementById('val-alt').textContent = p.altStr; document.getElementById('time-ago').setAttribute('data-obs-time', globalObsDate.getTime()); 
+        if (p.wx.length > 0) { document.getElementById('block-wx').style.display = 'flex'; document.getElementById('div-wx').style.display = 'block'; document.getElementById('val-wx').textContent = p.wx.join(' '); } else { document.getElementById('block-wx').style.display = 'none'; document.getElementById('div-wx').style.display = 'none'; } 
+        if (p.clouds.length > 0 && p.ceilStr === 'None') { document.getElementById('block-clouds').style.display = 'flex'; document.getElementById('div-clouds').style.display = 'block'; document.getElementById('val-clouds').textContent = p.clouds.join(', '); } else { document.getElementById('block-clouds').style.display = 'none'; document.getElementById('div-clouds').style.display = 'none'; } 
         
-        container.className = 'metar-bar ' + p.cat;
-        document.getElementById('val-category').textContent = p.cat;
+        container.className = 'metar-bar ' + p.cat; 
+        document.getElementById('val-category').textContent = p.cat; 
         
-        var visCat = 'vfr'; if (p.visVal === null) visCat = 'ifr'; else if (p.visVal < 1) visCat = 'lifr'; else if (p.visVal < 3) visCat = 'ifr'; else if (p.visVal <= 5) visCat = 'mvfr'; document.getElementById('val-vis').className = 'val ' + visCat;
-        var ceilCat = 'vfr'; if (p.ceilStr !== 'None') { if (p.ceilVal < 500) ceilCat = 'lifr'; else if (p.ceilVal < 1000) ceilCat = 'ifr'; else if (p.ceilVal <= 3000) ceilCat = 'mvfr'; } document.getElementById('val-ceil').className = 'val ' + ceilCat;
+        var visCat = 'vfr'; if (p.visVal === null) visCat = 'ifr'; else if (p.visVal < 1) visCat = 'lifr'; else if (p.visVal < 3) visCat = 'ifr'; else if (p.visVal <= 5) visCat = 'mvfr'; document.getElementById('val-vis').className = 'val ' + visCat; 
+        var ceilCat = 'vfr'; if (p.ceilStr !== 'None') { if (p.ceilVal < 500) ceilCat = 'lifr'; else if (p.ceilVal < 1000) ceilCat = 'ifr'; else if (p.ceilVal <= 3000) ceilCat = 'mvfr'; } document.getElementById('val-ceil').className = 'val ' + ceilCat; 
         
-        document.getElementById('val-observed-date').textContent = formatMetarDate(globalObsDate);
-        container.style.opacity = 1;
+        document.getElementById('val-observed-date').textContent = formatMetarDate(globalObsDate); 
+        container.style.opacity = 1; 
 
-        if (marqueeTimeout) clearTimeout(marqueeTimeout);
-        marqueeTimeout = setTimeout(function() {
-            var wrappers = document.querySelectorAll('.scroll-wrapper');
+        if (marqueeTimeout) clearTimeout(marqueeTimeout); 
+        marqueeTimeout = setTimeout(function() { 
+            var wrappers = document.querySelectorAll('.scroll-wrapper'); 
             wrappers.forEach(function(wrapper) { 
-                wrapper.classList.remove('overflow-marquee');
+                wrapper.classList.remove('overflow-marquee'); 
                 var row = wrapper.parentElement; 
                 if (wrapper.scrollWidth > row.clientWidth) { 
                     var dist = wrapper.scrollWidth - row.clientWidth + 50; 
@@ -237,9 +286,9 @@
                     wrapper.style.setProperty('--scroll-time', Math.max(dist / 60, 5) + 's'); 
                     wrapper.classList.add('overflow-marquee'); 
                 } 
-            });
-        }, 500);
-    }
+            }); 
+        }, 500); 
+    } 
     
     function formatMetarDate(dateObj) { 
         var mm = String(dateObj.getMonth() + 1).padStart(2, '0'); 
@@ -250,85 +299,83 @@
         hours = hours % 12; 
         hours = hours ? hours : 12; 
         return mm + '-' + dd + ' ' + String(hours).padStart(2, '0') + ':' + minutes + ' ' + ampm; 
-    }
+    } 
     
-    function updateTickers() {
-        var badges = document.querySelectorAll('.time-ago-badge'); var now = Date.now();
+    function updateTickers() { 
+        var badges = document.querySelectorAll('.time-ago-badge'); var now = Date.now(); 
         for (var i = 0; i < badges.length; i++) { 
             var obsTime = parseInt(badges.item(i).getAttribute('data-obs-time'), 10); 
             if (!obsTime || isNaN(obsTime)) continue; 
             var diffMins = Math.floor(Math.max(0, now - obsTime) / 60000); 
             badges.item(i).textContent = diffMins === 0 ? "(JUST NOW)" : (diffMins === 1 ? "(1 MINUTE AGO)" : "(" + diffMins + " MINUTES AGO)"); 
-        }
-    }
+        } 
+    } 
     
-    function fetchLiveMetar() {
-        var twoHoursMs = 7200000; var fallbackRawData = null;
+    function fetchLiveMetar() { 
+        var twoHoursMs = 7200000; var fallbackRawData = null; 
+        if (currentFetchController) { 
+            currentFetchController.abort(); 
+        } 
+        currentFetchController = new AbortController(); 
+        var signal = currentFetchController.signal; 
         
-        if (currentFetchController) {
-            currentFetchController.abort();
-        }
-        currentFetchController = new AbortController();
-        var signal = currentFetchController.signal;
-
-        function fetchStation(stationCode, isPrimary) {
-            var targetUrl = 'https://api.weather.gov/stations/' + stationCode + '/observations/latest';
-            var headers = new Headers();
-            headers.append('User-Agent', 'XiboSignageParser/1.0 (eric.v.kline.civ@us.navy.mil)');
-            headers.append('Accept', 'application/geo+json');
-
-            fetch(targetUrl, { method: 'GET', headers: headers, signal: signal })
-                .then(function(response) {
-                    if (!response.ok) throw new Error("HTTP " + response.status);
-                    return response.json();
-                })
-                .then(function(data) {
-                    if (data && data.properties && data.properties.rawMessage && data.properties.timestamp) {
-                        var rawMetar = data.properties.rawMessage;
-                        var obsDate = new Date(data.properties.timestamp);
-                        var ageMs = Date.now() - obsDate.getTime();
-
-                        if (isPrimary) {
-                            if (ageMs <= twoHoursMs) {
-                                initializeMetarParser(rawMetar);
-                            } else {
-                                fallbackRawData = rawMetar;
-                                fetchStation('KMJX', false);
-                            }
-                        } else {
-                            if (ageMs <= twoHoursMs) {
-                                initializeMetarParser(rawMetar);
-                            } else {
-                                if (fallbackRawData !== null) {
-                                    initializeMetarParser(fallbackRawData);
-                                } else {
-                                    initializeMetarParser(rawMetar);
-                                }
-                            }
-                        }
-                    } else {
-                        throw new Error("Missing properties");
-                    }
-                })
-                .catch(function(err) {
-                    if (err.name === 'AbortError') return;
-                    if (isPrimary) {
-                        fetchStation('KMJX', false);
-                    } else {
-                        if (fallbackRawData !== null) {
-                            initializeMetarParser(fallbackRawData);
-                        } else {
-                            showOfflineState();
-                        }
-                    }
-                });
-        }
-        fetchStation('KWRI', true);
-    }
+        function fetchStation(stationCode, isPrimary) { 
+            var targetUrl = 'https://api.weather.gov/stations/' + stationCode + '/observations/latest'; 
+            var headers = new Headers(); 
+            headers.append('User-Agent', 'XiboSignageParser/1.0 (eric.v.kline.civ@us.navy.mil)'); 
+            headers.append('Accept', 'application/geo+json'); 
+            
+            fetch(targetUrl, { method: 'GET', headers: headers, signal: signal }) 
+                .then(function(response) { 
+                    if (!response.ok) throw new Error("HTTP " + response.status); 
+                    return response.json(); 
+                }) 
+                .then(function(data) { 
+                    if (data && data.properties && data.properties.rawMessage && data.properties.timestamp) { 
+                        var rawMetar = data.properties.rawMessage; 
+                        var obsDate = new Date(data.properties.timestamp); 
+                        var ageMs = Date.now() - obsDate.getTime(); 
+                        if (isPrimary) { 
+                            if (ageMs <= twoHoursMs) { 
+                                initializeMetarParser(rawMetar); 
+                            } else { 
+                                fallbackRawData = rawMetar; 
+                                fetchStation('KMJX', false); 
+                            } 
+                        } else { 
+                            if (ageMs <= twoHoursMs) { 
+                                initializeMetarParser(rawMetar); 
+                            } else { 
+                                if (fallbackRawData !== null) { 
+                                    initializeMetarParser(fallbackRawData); 
+                                } else { 
+                                    initializeMetarParser(rawMetar); 
+                                } 
+                            } 
+                        } 
+                    } else { 
+                        throw new Error("Missing properties"); 
+                    } 
+                }) 
+                .catch(function(err) { 
+                    if (err.name === 'AbortError') return; 
+                    if (isPrimary) { 
+                        fetchStation('KMJX', false); 
+                    } else { 
+                        if (fallbackRawData !== null) { 
+                            initializeMetarParser(fallbackRawData); 
+                        } else { 
+                            showOfflineState(); 
+                        } 
+                    } 
+                }); 
+        } 
+        fetchStation('KWRI', true); 
+    } 
     
-    fetchLiveMetar();
-    if (window.metarTickerInterval) clearInterval(window.metarTickerInterval); updateTickers(); window.metarTickerInterval = setInterval(updateTickers, 10000);
-    if (window.metarDataRefresh) clearInterval(window.metarDataRefresh); window.metarDataRefresh = setInterval(fetchLiveMetar, 600000);
-</script>
-</body>
+    fetchLiveMetar(); 
+    if (window.metarTickerInterval) clearInterval(window.metarTickerInterval); updateTickers(); window.metarTickerInterval = setInterval(updateTickers, 10000); 
+    if (window.metarDataRefresh) clearInterval(window.metarDataRefresh); window.metarDataRefresh = setInterval(fetchLiveMetar, 600000); 
+</script> 
+</body> 
 </html>
