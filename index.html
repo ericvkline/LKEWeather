@@ -3,14 +3,14 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dashboard Display</title>
+    <title>Lakehurst Combined Aviation Dashboard</title>
     <style>
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #0f172a;
+            background-color: #0b0f19;
             color: #f8fafc;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
@@ -22,50 +22,54 @@
             flex-direction: column;
             width: 100%;
             height: 100%;
-            padding: 8px;
+            padding: 12px;
             box-sizing: border-box;
-            gap: 8px;
+            gap: 12px;
         }
 
         .pane {
             width: 100%;
-            border-radius: 6px;
+            border-radius: 8px;
             overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 1px solid #334155;
             background-color: #1e293b;
         }
 
-        /* Default Top Panel Height (Landscape) */
+        /* Top METAR Panel (Landscape Default) */
         .metar-pane {
-            height: 160px;
+            height: 175px;
             flex-shrink: 0;
+            background-color: #e9ecef;
             transition: height 0.3s ease;
         }
 
+        /* Lower Content Grid: NOAA Radar (Left) | Lightning & Traffic (Right) */
         .main-content-grid {
             flex: 1;
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: 1fr 1fr;
-            gap: 8px;
+            grid-template-columns: 640px 1fr;
+            grid-template-rows: 1fr;
+            gap: 12px;
             min-height: 0;
         }
 
-        .widget-frame {
+        iframe {
             width: 100%;
             height: 100%;
             border: none;
             display: block;
         }
 
-        /* Portrait & Narrow Screen Overrides */
-        @media (max-width: 900px), (orientation: portrait) {
+        /* Portrait & Narrow Viewport Adjustments */
+        @media (max-width: 1024px), (orientation: portrait) {
             .metar-pane {
-                height: 230px; /* Expands top bar for 2-line wrapped content */
+                height: 235px; /* Expands top height so wrapped METAR content fits without scrollbars */
             }
 
             .main-content-grid {
-                grid-template-columns: 1fr; /* Stacks weather, lightning, radar widgets vertically */
-                grid-template-rows: repeat(4, 1fr);
+                grid-template-columns: 1fr; /* Stacks Radar and Lightning vertically */
+                grid-template-rows: 1fr 1fr;
             }
         }
     </style>
@@ -73,24 +77,21 @@
 <body>
 
 <div class="dashboard-container">
-    <!-- Top METAR Bar -->
+    <!-- Top METAR Panel -->
     <div class="pane metar-pane">
-        <iframe class="widget-frame" src="metar.html" title="METAR Display"></iframe>
+        <iframe src="metar.html" title="METAR Display"></iframe>
     </div>
     
-    <!-- Dashboard Main Grid (Weather, Lightning, Radar Viewports) -->
+    <!-- Main Viewports Grid -->
     <div class="main-content-grid">
+        <!-- NOAA Radar Pane -->
         <div class="pane">
-            <iframe class="widget-frame" src="weather.html" title="Weather Viewport"></iframe>
+            <iframe src="https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsiaWQiOiJsb2NhbCIsImNlbnRlciI6Wy03NC40MTEsMzkuOTQ3XSwibG9jYXRpb24iOm51bGwsInpvb20iOjcuOTc2Mzg1OTI3NjQyMDE2LCJmaWx0ZXIiOiJXU1ItODhEIiwibGF5ZXIiOiJzcl9icmVmIiwic3RhdGlvbiI6IktESVgifSwiYW5pbWF0aW5nIjp0cnVlLCJiYXNlIjoic3RhbmRhcmQiLCJhcnRjYyI6ZmFsc2UsImNvdW50eSI6dHJ1ZSwiY3dhIjpmYWxzZSwicmZjIjpmYWxzZSwic3RhdGUiOnRydWUsIm1lbnUiOnRydWUsInNob3J0RnVzZWRPbmx5Ijp0cnVlLCJvcGFjaXR5Ijp7ImFsZXJ0cyI6MC4zMywibG9jYWwiOjAuODIsImxvY2FsU3RhdGlvbnMiOjAsIm5hdGlvbmFsIjowLjZ9fQ%3D%3D" title="NOAA Radar Viewport"></iframe>
         </div>
+        
+        <!-- Lightning & Traffic Pane -->
         <div class="pane">
-            <iframe class="widget-frame" src="lightning.html" title="Lightning Viewport"></iframe>
-        </div>
-        <div class="pane">
-            <iframe class="widget-frame" src="radar.html" title="Radar Viewport"></iframe>
-        </div>
-        <div class="pane">
-            <iframe class="widget-frame" src="forecast.html" title="Forecast Viewport"></iframe>
+            <iframe src="lightning.html" title="Lightning & Traffic Viewport"></iframe>
         </div>
     </div>
 </div>
