@@ -57,27 +57,27 @@
         @keyframes marquee-bounce { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--scroll-dist)); } }
 
         /* Multi-Line Break for Narrow Displays or Portrait */
-        @media (max-width: 900px), (orientation: portrait) {
-            .top-row-wrapper {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 6px;
-            }
-            .station-block {
-                margin-right: 0;
-            }
-            .portrait-break {
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                width: 100%;
-            }
-            
-            #val-station { font-size: 52px; }
-            .obs-time { font-size: 22px; }
-            .category-badge { font-size: 28px; }
-            .data-strip { font-size: 28px; }
-        }
+        /* Inside metar.html <style> */
+@media screen and (max-width: 1100px), screen and (max-aspect-ratio: 1/1), (orientation: portrait) {
+    .top-row-wrapper {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 4px;
+    }
+
+    .portrait-break {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        width: 100%;
+    }
+
+    #val-station { font-size: 48px !important; }
+    .obs-time { font-size: 20px !important; }
+    .category-badge { font-size: 26px !important; }
+    .data-strip { font-size: 26px !important; }
+}
+
     </style>
 </head>
 <body>
