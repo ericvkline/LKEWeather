@@ -1,71 +1,76 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>Lakehurst Combined Aviation Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Display</title>
     <style>
         html, body {
-            margin: 0; padding: 0;
-            width: 100vw; height: 100vh;
-            background-color: #0b0f19;
-            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0f172a;
+            color: #f8fafc;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
             box-sizing: border-box;
         }
 
-        #dashboard-grid {
-            display: grid;
-            width: 100vw; height: 100vh;
-            gap: 12px; padding: 12px;
+        .dashboard-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            padding: 10px;
             box-sizing: border-box;
-            /* Landscape Default Layout (e.g., 1920x1080) */
-            grid-template-columns: 35% 1fr; 
-            grid-template-rows: 175px 1fr;
+            gap: 10px;
         }
 
         .pane {
-            border-radius: 8px;
+            width: 100%;
+            border-radius: 6px;
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            border: 1px solid #334155;
             background-color: #1e293b;
         }
 
-        #pane-metar { grid-column: 1 / span 2; grid-row: 1; height: 175px; background-color: #e9ecef; }
-        #pane-radar { grid-column: 1; grid-row: 2; }
-        #pane-lightning { grid-column: 2; grid-row: 2; }
+        /* Default Landscape Height */
+        .metar-pane {
+            height: 160px;
+            flex-shrink: 0;
+        }
 
-        iframe { width: 100%; height: 100%; border: none; display: block; }
+        .main-pane {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-        /* Dynamic Portrait Layout Overlay (e.g., 1080x1920 Displays) */
-        @media (max-aspect-ratio: 1/1) {
-            #dashboard-grid {
-                grid-template-columns: 1fr;
-                grid-template-rows: 160px 1fr 1fr;
+        .metar-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        /* Expanded height for portrait/narrow layouts to fit wrapped METAR content */
+        @media (max-width: 900px) {
+            .metar-pane {
+                height: 230px;
             }
-
-            #pane-metar { grid-column: 1; grid-row: 1; height: 160px; }
-            #pane-radar { grid-column: 1; grid-row: 2; }
-            #pane-lightning { grid-column: 1; grid-row: 3; }
         }
     </style>
 </head>
 <body>
 
-<div id="dashboard-grid">
-    <!-- Loads Local METAR File -->
-    <div id="pane-metar" class="pane">
-        <iframe src="metar.html"></iframe>
+<div class="dashboard-container">
+    <div class="pane metar-pane">
+        <iframe class="metar-iframe" src="metar.html" title="METAR Display"></iframe>
     </div>
-
-    <!-- Loads External NOAA Radar -->
-    <div id="pane-radar" class="pane">
-        <iframe src="https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsiaWQiOiJsb2NhbCIsImNlbnRlciI6Wy03NC40MTEsMzkuOTQ3XSwibG9jYXRpb24iOm51bGwsInpvb20iOjcuOTc2Mzg1OTI3NjQyMDE2LCJmaWx0ZXIiOiJXU1ItODhEIiwibGF5ZXIiOiJzcl9icmVmIiwic3RhdGlvbiI6IktESVgifSwiYW5pbWF0aW5nIjp0cnVlLCJiYXNlIjoic3RhbmRhcmQiLCJhcnRjYyI6ZmFsc2UsImNvdW50eSI6dHJ1ZSwiY3dhIjpmYWxzZSwicmZjIjpmYWxzZSwic3RhdGUiOnRydWUsIm1lbnUiOnRydWUsInNob3J0RnVzZWRPbmx5Ijp0cnVlLCJvcGFjaXR5Ijp7ImFsZXJ0cyI6MC4zMywibG9jYWwiOjAuODIsImxvY2FsU3RhdGlvbnMiOjAsIm5hdGlvbmFsIjowLjZ9fQ%3D%3D"></iframe>
-    </div>
-
-    <!-- Loads Local Lightning & Traffic File -->
-    <div id="pane-lightning" class="pane">
-        <iframe src="lightning.html"></iframe>
+    
+    <div class="pane main-pane">
+        <!-- Main Dashboard Content Goes Here -->
     </div>
 </div>
 
