@@ -1,65 +1,238 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>METAR Monitor</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 16px;
-      background-color: #161b22;
-      color: #c9d1d9;
-      font-family: monospace, monospace;
-    }
-    h2 {
-      color: #58a6ff;
-      margin-bottom: 12px;
-      font-family: sans-serif;
-    }
-    .metar-box {
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      padding: 12px;
-      font-size: 1.1rem;
-      line-height: 1.5;
-      word-break: break-all;
-    }
-    .timestamp {
-      margin-top: 8px;
-      font-size: 0.8rem;
-      color: #8b949e;
-    }
-  </style>
+    <meta charset="utf-8" />
+    <title>METAR Weather Banner</title>
+    <style>
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        #metar-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            padding: 12px 18px;
+            box-sizing: border-box;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .station-title {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #38bdf8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .flight-rules-badge {
+            font-size: 14px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 4px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Flight Category Colors */
+        .vfr  { background-color: #15803d; color: #dcfce7; border: 1px solid #22c55e; }
+        .mvfr { background-color: #1d4ed8; color: #dbeafe; border: 1px solid #3b82f6; }
+        .ifr  { background-color: #b91c1c; color: #fee2e2; border: 1px solid #ef4444; }
+        .lifr { background-color: #7e22ce; color: #f3e8ff; border: 1px solid #a855f7; }
+        .unk  { background-color: #334155; color: #94a3b8; border: 1px solid #64748b; }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 8px 0;
+        }
+
+        .data-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 8px 10px;
+            text-align: center;
+        }
+
+        .data-label {
+            font-size: 11px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .data-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .raw-metar {
+            font-family: monospace;
+            font-size: 12px;
+            color: #cbd5e1;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 6px 10px;
+            border-radius: 4px;
+            border-left: 3px solid #38bdf8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .footer-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+    </style>
 </head>
 <body>
-  <h2>Local METAR Data</h2>
-  <div class="metar-box" id="metar-display">Loading METAR observation...</div>
-  <div class="timestamp" id="last-updated">Updating...</div>
 
-  <script>
-    const STATION_ICAO = 'KBLM'; // Set default ICAO
+<div id="metar-container">
+    <div class="header-row">
+        <div class="station-title">
+            <span id="station-id">KNEL</span>
+            <span style="font-size: 14px; font-weight: 400; color: #94a3b8;">Lakehurst NAES</span>
+        </div>
+        <div id="flight-badge" class="flight-rules-badge unk">FETCHING...</div>
+    </div>
 
-    async function fetchMetar() {
-      try {
-        const response = await fetch(`https://rgw.aviationweather.gov/data/cache/metars.json.gz?ids=${STATION_ICAO}`);
-        if (!response.ok) throw new Error('Network error');
-        const data = await response.json();
-        if (data && data.length > 0) {
-          document.getElementById('metar-display').innerText = data[0].rawOb || 'No raw observation returned.';
-        } else {
-          document.getElementById('metar-display').innerText = `No data available for ${STATION_ICAO}`;
-        }
-      } catch (err) {
-        document.getElementById('metar-display').innerText = `Error loading METAR for ${STATION_ICAO}`;
-      } finally {
-        document.getElementById('last-updated').innerText = 'Last checked: ' + new Date().toLocaleTimeString();
-      }
+    <div class="data-grid">
+        <div class="data-card">
+            <div class="data-label">Wind</div>
+            <div id="val-wind" class="data-value">--</div>
+        </div>
+        <div class="data-card">
+            <div class="data-label">Visibility</div>
+            <div id="val-vis" class="data-value">--</div>
+        </div>
+        <div class="data-card">
+            <div class="data-label">Sky Condition</div>
+            <div id="val-sky" class="data-value">--</div>
+        </div>
+        <div class="data-card">
+            <div class="data-label">Temp / Dew</div>
+            <div id="val-temp" class="data-value">--</div>
+        </div>
+    </div>
+
+    <div id="raw-metar-text" class="raw-metar">Loading station data...</div>
+
+    <div class="footer-info">
+        <span>Source: NOAA / Aviation Weather Center</span>
+        <span id="last-updated">Updated: --:--</span>
+    </div>
+</div>
+
+<script>
+    // Primary station: KNEL (Lakehurst), Fallback: KWRI (McGuire AFB)
+    var PRIMARY_STATION = "KNEL";
+    var FALLBACK_STATION = "KWRI";
+
+    function fetchMETAR() {
+        var url = "https://aviationweather.gov/api/data/metar?ids=" + PRIMARY_STATION + "," + FALLBACK_STATION + "&format=json";
+
+        fetch(url)
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data && data.length > 0) {
+                    // Try finding KNEL first, otherwise use KWRI
+                    var stationData = data.find(function(item) { return item.icaoId === PRIMARY_STATION; });
+                    if (!stationData) { stationData = data[0]; }
+                    parseAndDisplay(stationData);
+                } else {
+                    document.getElementById('raw-metar-text').textContent = "No METAR data returned for " + PRIMARY_STATION;
+                }
+            })
+            .catch(function(err) {
+                document.getElementById('raw-metar-text').textContent = "Error loading METAR data.";
+            });
     }
 
-    fetchMetar();
-    setInterval(fetchMetar, 300000); // 5 minute refresh cycle
-  </script>
+    function parseAndDisplay(data) {
+        document.getElementById('station-id').textContent = data.icaoId;
+        document.getElementById('raw-metar-text').textContent = data.rawOb || "N/A";
+        
+        // Wind
+        var windStr = "Calm";
+        if (data.wspd !== undefined) {
+            var dir = data.wdir ? data.wdir + "°" : "VRB";
+            windStr = dir + " @ " + data.wspd + "kt";
+            if (data.wgst) { windStr += " G" + data.wgst + "kt"; }
+        }
+        document.getElementById('val-wind').textContent = windStr;
+
+        // Visibility
+        var visStr = data.visib !== undefined ? data.visib + " SM" : "N/A";
+        document.getElementById('val-vis').textContent = visStr;
+
+        // Temperature / Dewpoint
+        var tempStr = "--";
+        if (data.temp !== undefined && data.dewp !== undefined) {
+            tempStr = data.temp + "°C / " + data.dewp + "°C";
+        }
+        document.getElementById('val-temp').textContent = tempStr;
+
+        // Sky / Ceiling
+        var skyStr = "Clear";
+        if (data.clouds && data.clouds.length > 0) {
+            var lowest = data.clouds[0];
+            skyStr = lowest.cover + (lowest.base ? " " + lowest.base + "00ft" : "");
+        }
+        document.getElementById('val-sky').textContent = skyStr;
+
+        // Flight Category Determination
+        var cat = "VFR";
+        var badge = document.getElementById('flight-badge');
+        
+        var vis = parseFloat(data.visib) || 10;
+        var ceiling = 10000;
+
+        if (data.clouds) {
+            data.clouds.forEach(function(c) {
+                if ((c.cover === "BKN" || c.cover === "OVC" || c.cover === "VV") && c.base) {
+                    var alt = c.base * 100;
+                    if (alt < ceiling) { ceiling = alt; }
+                }
+            });
+        }
+
+        if (ceiling < 500 || vis < 1) { cat = "LIFR"; }
+        else if (ceiling < 1000 || vis < 3) { cat = "IFR"; }
+        else if (ceiling <= 3000 || vis <= 5) { cat = "MVFR"; }
+        else { cat = "VFR"; }
+
+        badge.textContent = cat;
+        badge.className = "flight-rules-badge " + cat.toLowerCase();
+
+        // Timestamp
+        var timeStr = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('last-updated').textContent = "Updated: " + timeStr;
+    }
+
+    // Initial load and 5-minute auto-refresh cycle
+    fetchMETAR();
+    setInterval(fetchMETAR, 300000);
+</script>
 </body>
 </html>
