@@ -1,49 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aviation Dashboard Wrapper</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: #0d1117;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-    .dashboard-container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      width: 100vw;
-      height: 100vh;
-      gap: 8px;
-      padding: 8px;
-    }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      border-radius: 8px;
-      background-color: #161b22;
-    }
-    @media (max-width: 768px) or (orientation: portrait) {
-      .dashboard-container {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 1fr;
-      }
-    }
-  </style>
+    <meta charset="utf-8" />
+    <title>Lakehurst Combined Aviation Dashboard</title>
+    <style>
+        html, body {
+            margin: 0; padding: 0;
+            width: 100vw; height: 100vh;
+            background-color: #0b0f19;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            box-sizing: border-box;
+        }
+
+        #dashboard-grid {
+            display: grid;
+            width: 100vw; height: 100vh;
+            gap: 12px; padding: 12px;
+            box-sizing: border-box;
+            /* Landscape Default Layout (e.g., 1920x1080) */
+            grid-template-columns: 35% 1fr; 
+            grid-template-rows: 175px 1fr;
+        }
+
+        .pane {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 1px solid #334155;
+            background-color: #1e293b;
+        }
+
+        #pane-metar { grid-column: 1 / span 2; grid-row: 1; height: 175px; background-color: #e9ecef; }
+        #pane-radar { grid-column: 1; grid-row: 2; }
+        #pane-lightning { grid-column: 2; grid-row: 2; }
+
+        iframe { width: 100%; height: 100%; border: none; display: block; }
+
+        /* Dynamic Portrait Layout Overlay (e.g., 1080x1920 Displays) */
+        @media (max-aspect-ratio: 1/1) {
+            #dashboard-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: 160px 1fr 1fr;
+            }
+
+            #pane-metar { grid-column: 1; grid-row: 1; height: 160px; }
+            #pane-radar { grid-column: 1; grid-row: 2; }
+            #pane-lightning { grid-column: 1; grid-row: 3; }
+        }
+    </style>
 </head>
 <body>
-  <div class="dashboard-container">
-    <iframe src="metar.html" title="METAR Data"></iframe>
-    <iframe src="lightning.html" title="Lightning Monitor" allow="autoplay"></iframe>
-  </div>
+
+<div id="dashboard-grid">
+    <!-- Loads Local METAR File -->
+    <div id="pane-metar" class="pane">
+        <iframe src="metar.html"></iframe>
+    </div>
+
+    <!-- Loads External NOAA Radar -->
+    <div id="pane-radar" class="pane">
+        <iframe src="https://radar.weather.gov/?settings=v1_eyJhZ2VuZGEiOnsiaWQiOiJsb2NhbCIsImNlbnRlciI6Wy03NC40MTEsMzkuOTQ3XSwibG9jYXRpb24iOm51bGwsInpvb20iOjcuOTc2Mzg1OTI3NjQyMDE2LCJmaWx0ZXIiOiJXU1ItODhEIiwibGF5ZXIiOiJzcl9icmVmIiwic3RhdGlvbiI6IktESVgifSwiYW5pbWF0aW5nIjp0cnVlLCJiYXNlIjoic3RhbmRhcmQiLCJhcnRjYyI6ZmFsc2UsImNvdW50eSI6dHJ1ZSwiY3dhIjpmYWxzZSwicmZjIjpmYWxzZSwic3RhdGUiOnRydWUsIm1lbnUiOnRydWUsInNob3J0RnVzZWRPbmx5Ijp0cnVlLCJvcGFjaXR5Ijp7ImFsZXJ0cyI6MC4zMywibG9jYWwiOjAuODIsImxvY2FsU3RhdGlvbnMiOjAsIm5hdGlvbmFsIjowLjZ9fQ%3D%3D"></iframe>
+    </div>
+
+    <!-- Loads Local Lightning & Traffic File -->
+    <div id="pane-lightning" class="pane">
+        <iframe src="lightning.html"></iframe>
+    </div>
+</div>
+
 </body>
 </html>
