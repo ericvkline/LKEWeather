@@ -22,9 +22,9 @@
             flex-direction: column;
             width: 100%;
             height: 100%;
-            padding: 10px;
+            padding: 8px;
             box-sizing: border-box;
-            gap: 10px;
+            gap: 8px;
         }
 
         .pane {
@@ -34,30 +34,38 @@
             background-color: #1e293b;
         }
 
-        /* Default Landscape Height */
+        /* Default Top Panel Height (Landscape) */
         .metar-pane {
             height: 160px;
             flex-shrink: 0;
+            transition: height 0.3s ease;
         }
 
-        .main-pane {
+        .main-content-grid {
             flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 8px;
+            min-height: 0;
         }
 
-        .metar-iframe {
+        .widget-frame {
             width: 100%;
             height: 100%;
             border: none;
             display: block;
         }
 
-        /* Expanded height for portrait/narrow layouts to fit wrapped METAR content */
-        @media (max-width: 900px) {
+        /* Portrait & Narrow Screen Overrides */
+        @media (max-width: 900px), (orientation: portrait) {
             .metar-pane {
-                height: 230px;
+                height: 230px; /* Expands top bar for 2-line wrapped content */
+            }
+
+            .main-content-grid {
+                grid-template-columns: 1fr; /* Stacks weather, lightning, radar widgets vertically */
+                grid-template-rows: repeat(4, 1fr);
             }
         }
     </style>
@@ -65,12 +73,25 @@
 <body>
 
 <div class="dashboard-container">
+    <!-- Top METAR Bar -->
     <div class="pane metar-pane">
-        <iframe class="metar-iframe" src="metar.html" title="METAR Display"></iframe>
+        <iframe class="widget-frame" src="metar.html" title="METAR Display"></iframe>
     </div>
     
-    <div class="pane main-pane">
-        <!-- Main Dashboard Content Goes Here -->
+    <!-- Dashboard Main Grid (Weather, Lightning, Radar Viewports) -->
+    <div class="main-content-grid">
+        <div class="pane">
+            <iframe class="widget-frame" src="weather.html" title="Weather Viewport"></iframe>
+        </div>
+        <div class="pane">
+            <iframe class="widget-frame" src="lightning.html" title="Lightning Viewport"></iframe>
+        </div>
+        <div class="pane">
+            <iframe class="widget-frame" src="radar.html" title="Radar Viewport"></iframe>
+        </div>
+        <div class="pane">
+            <iframe class="widget-frame" src="forecast.html" title="Forecast Viewport"></iframe>
+        </div>
     </div>
 </div>
 
