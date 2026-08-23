@@ -2,18 +2,19 @@
 <html>
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: transparent; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-sizing: border-box; }
         .metar-container { width: 100%; height: 100%; box-sizing: border-box; }
         
         .metar-bar { display: flex; flex-direction: column; justify-content: space-between; width: 100%; height: 100%; box-sizing: border-box; padding: 4px 15px; background-color: #e9ecef; color: #212529; white-space: nowrap; transition: background-color 0.5s; }
-        .metar-bar.offline { background-color: #cbd5e1 !important; } /* Dimmed state for disconnects */
+        .metar-bar.offline { background-color: #cbd5e1 !important; }
         
         .metar-row { display: flex; flex-direction: row; align-items: center; width: 100%; line-height: 1.1; }
         .secondary-row { margin-left: 5px; }
         
-        /* Top Row Flex Adjustments */
         .top-row-wrapper { display: flex; flex-direction: row; align-items: center; width: 100%; }
+        .portrait-break { display: flex; flex-direction: row; align-items: center; }
         
         .raw-row { font-family: monospace; font-size: 27px; background-color: #0f172a; color: #f8fafc; padding: 4px 12px; width: 100%; box-sizing: border-box; border-radius: 4px; display: flex; align-items: center; }
         .raw-row .scroll-wrapper { display: flex; align-items: baseline; }
@@ -38,7 +39,6 @@
         .val { font-weight: 700; transition: background-color 0.3s; }
         .divider { margin: 0 10px; font-weight: 300; opacity: 0.4; }
         
-        /* Strict Specificity Overrides */
         .metar-bar.VFR .category-badge, .metar-bar.vfr .category-badge { background-color: #28a745 !important; color: #ffffff !important; }       
         .metar-bar.MVFR .category-badge, .metar-bar.mvfr .category-badge { background-color: #007bff !important; color: #ffffff !important; }      
         .metar-bar.IFR .category-badge, .metar-bar.ifr .category-badge { background-color: #dc3545 !important; color: #ffffff !important; }       
@@ -56,17 +56,15 @@
         .overflow-marquee { animation: marquee-bounce var(--scroll-time) linear infinite alternate; }
         @keyframes marquee-bounce { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--scroll-dist)); } }
 
-        /* Media Query for Portrait Mode */
-        @media (orientation: portrait) {
+        /* Width-based layout trigger for narrow/portrait containers */
+        @media (max-width: 900px) {
             .top-row-wrapper { flex-direction: column; align-items: flex-start; }
-            .station-block { margin-bottom: 8px; margin-right: 0; }
-            .portrait-break { display: flex; flex-direction: row; align-items: center; }
+            .station-block { margin-bottom: 6px; margin-right: 0; }
             
-            /* Slight sizing adjustments to fit nicely in stacked layout */
-            #val-station { font-size: 60px; }
-            .obs-time { font-size: 26px; }
-            .category-badge { font-size: 32px; }
-            .data-strip { font-size: 32px; }
+            #val-station { font-size: 58px; }
+            .obs-time { font-size: 24px; }
+            .category-badge { font-size: 30px; }
+            .data-strip { font-size: 30px; }
         }
     </style>
 </head>
