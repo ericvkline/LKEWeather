@@ -115,8 +115,22 @@
         .val.vfr, .val.mvfr, .val.ifr, .val.lifr, .val.offline { padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; line-height: 1.1; border:1px solid black; } 
         
         .scroll-wrapper { display: flex; align-items: center; width: max-content; will-change: transform; } 
-        .overflow-marquee { animation: marquee-bounce var(--scroll-time) linear infinite alternate; } 
-        @keyframes marquee-bounce { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--scroll-dist)); } } 
+        
+        /* Continuous Marquee Animation */
+        .overflow-marquee { 
+            animation: marquee-continuous var(--scroll-time) linear infinite; 
+        } 
+        @keyframes marquee-continuous { 
+            0% { transform: translateX(0); } 
+            100% { transform: translateX(var(--scroll-dist)); } 
+        }
+
+        /* Spacing between cloned loops */
+        .marquee-spacer {
+            display: inline-block;
+            padding-right: 60px;
+        }
+
         /* Multi-Line Break for Narrow Displays or Portrait */ 
         @media screen and (max-width: 1100px), screen and (max-aspect-ratio: 1/1), (orientation: portrait) { 
             .top-row-wrapper { 
@@ -195,9 +209,8 @@
             var gain = ctx.createGain();
             
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(440, ctx.currentTime); // 440 Hz soft tone
+            osc.frequency.setValueAtTime(440, ctx.currentTime);
             
-            // Soft envelope: attack and smooth fade out over 1 second
             gain.gain.setValueAtTime(0.001, ctx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.1);
             gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.0);
@@ -221,7 +234,7 @@
         if (flashTimeout) clearTimeout(flashTimeout);
         flashTimeout = setTimeout(function() {
             catBadge.classList.remove('flash-alert');
-        }, 60000); // Flash for 60 seconds (1 minute)
+        }, 60000);
     }
 
     function showOfflineState() { 
@@ -375,7 +388,6 @@
         else if (p.visVal <= 5 || p.ceilVal <= 3000) p.cat = 'MVFR'; 
         else p.cat = 'VFR'; 
         
-        // Detect flight rule category changes
         if (previousCategory !== null && previousCategory !== p.cat) {
             triggerCategoryAlert();
         }
@@ -427,7 +439,7 @@
         document.getElementById('val-ceil').className = 'val ' + ceilCat; 
         
         document.getElementById('val-observed-date').textContent = formatMetarDate(globalObsDate); 
-        updateTickers(); /* Time Since Observation calculates immediately */
+        updateTickers(); 
         container.style.opacity = 1; 
         
         if (marqueeTimeout) clearTimeout(marqueeTimeout); 
@@ -435,11 +447,26 @@
             var wrappers = document.querySelectorAll('.scroll-wrapper'); 
             wrappers.forEach(function(wrapper) { 
                 wrapper.classList.remove('overflow-marquee'); 
+                
+                // Remove previous cloned marquee nodes if re-initialized
+                var cloned = wrapper.querySelector('.marquee-clone');
+                if (cloned) cloned.remove();
+
                 var row = wrapper.parentElement; 
                 if (wrapper.scrollWidth > row.clientWidth) { 
-                    var dist = wrapper.scrollWidth - row.clientWidth + 50; 
-                    wrapper.style.setProperty('--scroll-dist', '-' + dist + 'px'); 
-                    wrapper.style.setProperty('--scroll-time', Math.max(dist / 60, 5) + 's'); 
+                    var singleSetWidth = wrapper.scrollWidth;
+                    
+                    // Create continuous seamless clone
+                    var clone = document.createElement('div');
+                    clone.className = 'marquee-clone';
+                    clone.style.display = 'inline-flex';
+                    clone.style.alignItems = 'inherit';
+                    clone.innerHTML = '<span class="marquee-spacer"></span>' + wrapper.innerHTML;
+                    wrapper.appendChild(clone);
+
+                    var totalShift = wrapper.scrollWidth - singleSetWidth;
+                    wrapper.style.setProperty('--scroll-dist', '-' + totalShift + 'px'); 
+                    wrapper.style.setProperty('--scroll-time', Math.max(totalShift / 40, 8) + 's'); 
                     wrapper.classList.add('overflow-marquee'); 
                 } 
             }); 
