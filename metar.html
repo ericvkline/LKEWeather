@@ -1,9 +1,9 @@
-<!doctype html>
-<html>
- <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style> 
+<!DOCTYPE html> 
+<html> 
+<head> 
+    <meta charset="utf-8" /> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
+    <style> 
         html, body { 
             margin: 0; 
             padding: 0; 
@@ -85,6 +85,15 @@
         
         .category-badge { font-weight: 900; font-size: 32px; text-transform: uppercase; background-color: rgba(0, 0, 0, 0.15); padding: 2px 12px; border-radius: 6px; letter-spacing: 1px; margin-right: 20px; text-align: center; line-height: 1.1; min-width: 60px; border: 2px solid black; transition: background-color 0.3s; } 
         
+        /* Flashing effect applied on category change */
+        .category-badge.flash-alert {
+            animation: category-flash 1s infinite alternate;
+        }
+        @keyframes category-flash {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0.2; transform: scale(1.05); }
+        }
+
         .data-strip { display: flex; align-items: baseline; font-size: 32px; line-height: 1.5; } 
         .data-item { display: flex; align-items: baseline; } 
         .label { font-weight: 400; opacity: 0.85; margin-right: 6px; } 
@@ -126,89 +135,95 @@
             .category-badge { font-size: 26px !important; } 
             .data-strip { font-size: 26px !important; } 
         } 
-    </style>
- </head>
- <body>
-  <div class="metar-container">
-   <div class="metar-bar" id="metar-container" style="opacity: 0; transition: opacity 0.5s;">
-    <!-- Top Row (Split into 2 lines in portrait) -->
-    <div class="metar-row">
-     <div class="top-row-wrapper">
-      <!-- Top Line 1: Station and Observation Time -->
-      <div class="station-block">
-       <div id="val-station">----</div>
-       <div class="obs-time">
-        <span class="obs-time-label">Observed:</span> <span id="val-observed-date">--</span><span id="time-ago" class="time-ago-badge"></span><span id="heartbeat" class="heartbeat-led"></span>
-       </div>
-      </div>
-      <!-- Line 2 in Portrait: Category Badge + Visibility/Ceiling Block -->
-      <div class="portrait-break">
-       <div class="category-badge" id="val-category">--</div>
-       <div class="data-strip">
-        <div class="data-item">
-         <div class="label">Vis:</div>
-         <div class="val" id="val-vis">--</div>
-        </div>
-        <div class="divider">|</div>
-        <div class="data-item">
-         <div class="label">Ceil:</div>
-         <div class="val" id="val-ceil">--</div>
-        </div>
-       </div>
-      </div>
-     </div>
-    </div>
-    <!-- Secondary Data Row -->
-    <div class="metar-row secondary-row" style="overflow: hidden;">
-     <div class="scroll-wrapper">
-      <div class="data-strip">
-       <div class="data-item">
-        <div class="label">Wind:</div>
-        <div class="val" id="val-wind">--</div>
-       </div>
-       <div class="divider">|</div>
-       <div class="data-item" id="block-clouds" style="display:none;">
-        <div class="label">Clouds:</div>
-        <div class="val" id="val-clouds">--</div>
-       </div>
-       <div class="divider" id="div-clouds" style="display:none;">|</div>
-       <div class="data-item" id="block-wx" style="display:none;">
-        <div class="label">Wx:</div>
-        <div class="val" id="val-wx">--</div>
-       </div>
-       <div class="divider" id="div-wx" style="display:none;">|</div>
-       <div class="data-item">
-        <div class="label">Temp:</div>
-        <div class="val" id="val-temp">--</div>
-       </div>
-       <div class="divider">|</div>
-       <div class="data-item">
-        <div class="label">Humidity:</div>
-        <div class="val" id="val-humidity">--</div>
-       </div>
-       <div class="divider">|</div>
-       <div class="data-item">
-        <div class="label">Alt:</div>
-        <div class="val" id="val-alt">--</div>
-       </div>
-      </div>
-     </div>
-    </div>
-    <!-- Raw Data Marquee Row -->
-    <div class="metar-row raw-row" style="overflow: hidden;">
-     <div class="scroll-wrapper">
-      <div class="label raw-label">METAR Data:</div>
-      <div class="val" id="val-raw" style="color: #f8fafc;">LOADING...</div>
-     </div>
-    </div>
-   </div>
-  </div>
-  <script> 
+    </style> 
+</head> 
+<body> 
+<div class="metar-container"> 
+    <div class="metar-bar" id="metar-container" style="opacity: 0; transition: opacity 0.5s;"> 
+       <!-- Top Row (Split into 2 lines in portrait) --> 
+       <div class="metar-row"> 
+           <div class="top-row-wrapper"> 
+               <!-- Top Line 1: Station and Observation Time --> 
+               <div class="station-block"> 
+                   <div id="val-station">----</div> 
+                   <div class="obs-time"><span class="obs-time-label">Observed:</span> <span id="val-observed-date">--</span><span id="time-ago" class="time-ago-badge"></span><span id="heartbeat" class="heartbeat-led"></span></div> 
+               </div> 
+               <!-- Line 2 in Portrait: Category Badge + Visibility/Ceiling Block --> 
+               <div class="portrait-break"> 
+                   <div class="category-badge" id="val-category">--</div> 
+                   <div class="data-strip"> 
+                       <div class="data-item"><div class="label">Vis:</div><div class="val" id="val-vis">--</div></div><div class="divider">|</div> 
+                       <div class="data-item"><div class="label">Ceil:</div><div class="val" id="val-ceil">--</div></div> 
+                   </div> 
+               </div> 
+           </div> 
+       </div> 
+       <!-- Secondary Data Row --> 
+       <div class="metar-row secondary-row" style="overflow: hidden;"> 
+           <div class="scroll-wrapper"> 
+               <div class="data-strip"> 
+                   <div class="data-item"><div class="label">Wind:</div><div class="val" id="val-wind">--</div></div><div class="divider">|</div> 
+                   <div class="data-item" id="block-clouds" style="display:none;"><div class="label">Clouds:</div><div class="val" id="val-clouds">--</div></div><div class="divider" id="div-clouds" style="display:none;">|</div> 
+                   <div class="data-item" id="block-wx" style="display:none;"><div class="label">Wx:</div><div class="val" id="val-wx">--</div></div><div class="divider" id="div-wx" style="display:none;">|</div> 
+                   <div class="data-item"><div class="label">Temp:</div><div class="val" id="val-temp">--</div></div><div class="divider">|</div> 
+                   <div class="data-item"><div class="label">Humidity:</div><div class="val" id="val-humidity">--</div></div><div class="divider">|</div> 
+                   <div class="data-item"><div class="label">Alt:</div><div class="val" id="val-alt">--</div></div> 
+               </div> 
+           </div> 
+       </div> 
+       <!-- Raw Data Marquee Row --> 
+       <div class="metar-row raw-row" style="overflow: hidden;"> 
+           <div class="scroll-wrapper"><div class="label raw-label">METAR Data:</div><div class="val" id="val-raw" style="color: #f8fafc;">LOADING...</div></div> 
+       </div>   
+    </div> 
+</div> 
+<script> 
     var container = document.getElementById('metar-container'); 
     var globalObsDate = new Date(); 
     var marqueeTimeout = null; 
     var currentFetchController = null; 
-    
+    var previousCategory = null; 
+    var flashTimeout = null; 
+
+    function playSoftTone() {
+        try {
+            var AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            var ctx = new AudioContext();
+            
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, ctx.currentTime); // 440 Hz soft tone
+            
+            // Soft envelope: attack and smooth fade out over 1 second
+            gain.gain.setValueAtTime(0.001, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime + 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.0);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 1.0);
+        } catch (e) {
+            console.warn("Audio playback not allowed without user interaction.", e);
+        }
+    }
+
+    function triggerCategoryAlert() {
+        var catBadge = document.getElementById('val-category');
+        catBadge.classList.add('flash-alert');
+        
+        playSoftTone();
+
+        if (flashTimeout) clearTimeout(flashTimeout);
+        flashTimeout = setTimeout(function() {
+            catBadge.classList.remove('flash-alert');
+        }, 60000); // Flash for 60 seconds (1 minute)
+    }
+
     function showOfflineState() { 
         document.getElementById('val-station').textContent = "DISC"; 
         document.getElementById('val-category').textContent = "OFFLINE"; 
@@ -243,7 +258,7 @@
         var led = document.getElementById('heartbeat'); 
         if (led) { led.style.animation = "none"; led.style.backgroundColor = "#94a3b8"; } 
     } 
- 
+
     function initializeMetarParser(rawText) { 
         if (!rawText) return; 
         var p = { raw: rawText.trim(), station: '----', visVal: null, visStr: 'Missing', ceilVal: 99999, ceilStr: 'None', clouds: new Array(), wx: new Array(), tempC: null, dewC: null, tempF: '--', dewF: '--', humidity: '--', windStr: '--', windSpd: 0, windGst: 0, altStr: '--', cat: 'VFR' }; 
@@ -347,7 +362,7 @@
                     var e = 6.11 * Math.pow(10, (7.5 * tdc) / (237.3 + tdc)); 
                     p.humidity = Math.min(100, Math.max(0, Math.round((e / es) * 100))) + '%'; 
                 } 
-            } else if (/^A(\d{4})$/.test(t)) {
+            } else if (/^A(\d{4})$/.test(t)) { 
                 p.altStr = (parseInt(t.substring(1), 10) / 100).toFixed(2) + ' inHg'; 
             } else if (/^(\+|-|VC)?(MI|PR|BC|DR|BL|SH|TS|FZ)?(DZ|RA|SN|SG|IC|PE|GR|GS|UP)?(BR|FG|FU|VA|DU|SA|HZ|PY)?(PO|SQ|FC|SS|DS)?$/.test(t) && t.length > 1) { 
                 if (!t.startsWith('A') && !t.includes('/')) p.wx.push(t); 
@@ -360,6 +375,12 @@
         else if (p.visVal <= 5 || p.ceilVal <= 3000) p.cat = 'MVFR'; 
         else p.cat = 'VFR'; 
         
+        // Detect flight rule category changes
+        if (previousCategory !== null && previousCategory !== p.cat) {
+            triggerCategoryAlert();
+        }
+        previousCategory = p.cat;
+
         document.getElementById('val-station').textContent = p.station; 
         document.getElementById('val-vis').textContent = p.visStr; 
         document.getElementById('val-ceil').textContent = p.ceilStr; 
@@ -518,6 +539,6 @@
     
     if (window.metarDataRefresh) clearInterval(window.metarDataRefresh); 
     window.metarDataRefresh = setInterval(fetchLiveMetar, 600000); 
-</script>
- </body>
+</script> 
+</body> 
 </html>
