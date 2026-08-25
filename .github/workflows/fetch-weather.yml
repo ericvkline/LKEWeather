@@ -1,4 +1,4 @@
-name: Hourly METAR Fetch
+name: METAR Fetch
 
 on:
   schedule:
