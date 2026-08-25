@@ -1,0 +1,32 @@
+name: Hourly METAR Fetch
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Runs automatically at the start of every hour
+  workflow_dispatch: # Allows you to trigger the job manually to test it
+
+jobs:
+  fetch_and_deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Allows the Action to push the weather file back to your repo
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Create Data Directory
+        run: mkdir -p data
+
+      - name: Fetch Weather Data
+        run: |
+          curl -s "https://aviationweather.gov/api/data/metar?ids=KWRI,KMJX&format=raw" > data/metar.txt
+
+      - name: Commit and Push Changes
+        run: |
+          git config user.name "Eric V. Klinie"
+          git config user.email "eric.v.kline.civ@us.navy.mil"
+          git add data/metar.txt
+          # If the weather data hasn't changed, '|| exit 0' gracefully completes the job
+          git commit -m "Automated weather fetch [skip ci]" || exit 0
+          git push
