@@ -1,15 +1,16 @@
-name: METAR Fetch
+name: Continuous 5-Minute METAR Sync
 
 on:
-  schedule:
-    - cron: '3-59/10 * * * *' 
-  workflow_dispatch: # Allows you to trigger the job manually to test it
+  workflow_dispatch: # Allows you to start the loop manually
+  repository_dispatch:
+    types: [trigger-next-run]
 
 jobs:
-  fetch_and_deploy:
+  sync_and_loop:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Allows the Action to push the weather file back to your repo
+      contents: write
+      actions: write # Required so the job has permission to trigger its next run
 
     steps:
       - name: Checkout Repository
@@ -24,9 +25,20 @@ jobs:
 
       - name: Commit and Push Changes
         run: |
-          git config user.name "Eric V. Klinie"
-          git config user.email "eric.v.kline.civ@us.navy.mil"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/metar.txt
-          # If the weather data hasn't changed, '|| exit 0' gracefully completes the job
+          # '[skip ci]' prevents GitHub from triggering a separate, redundant build
           git commit -m "Automated weather fetch [skip ci]" || exit 0
           git push
+
+      - name: Wait 5 Minutes
+        run: sleep 300 # Pause for 300 seconds
+
+      - name: Trigger Next Run
+        run: |
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/dispatches \
+            -d '{"event_type": "trigger-next-run"}'
